@@ -13,7 +13,7 @@ awful.util = require("awful.util")
 theme = {}
 
 home = os.getenv("HOME")
-config = "/home/alin/.config/awesome"
+config = home .. "/.config/awesome"
 themes = config .. "/themes"
 themename = "/zenburn-alin"
 themedir = themes .. themename
@@ -32,8 +32,8 @@ end
 -- }}}
 
 -- {{{ Styles
-theme.font      = "monospace 10"
-theme.taglist_font      = "monospace 14"
+theme.font      = "monospace 9"
+theme.taglist_font      = "monospace 12"
 
 -- {{{ Colors
 --theme.bg_systray = theme.bg_normal

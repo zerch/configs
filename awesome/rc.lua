@@ -69,17 +69,11 @@ confdir       = config
 themes        = config .. "/themes"
 themename     = "/zenburn-alin"
 themedir      = themes .. themename
-browser       = "firefox"
-chat          = "skype"
-mail          = "thunderbird"
-clementine    = "clementine"
 
 
 beautiful.init(themedir .. "/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
-terminal            = "urxvtc"
-editor              = os.getenv("EDITOR") or "vim"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -160,7 +154,7 @@ end
 
 wp_index = 1
 wp_timeout  = 600
-wp_path = "/home/alin/Wallpapers/"
+wp_path = "/Msome_path</Wallpapers/"
 wp_filter = function(s) return string.match(s,"%.png$") or string.match(s,"%.jpg$") or string.match(s,"%.jpeg$") end
 wp_files = scandir(wp_path, wp_filter)
 
@@ -439,10 +433,10 @@ mytasklist.buttons = awful.util.table.join(
                                           end))
 
 for s = 1, screen.count() do
-    
+
     -- Create a promptbox for each screen
     mypromptbox[s] = awful.widget.prompt()
-    
+
     -- We need one layoutbox per screen.
     mylayoutbox[s] = awful.widget.layoutbox(s)
     mylayoutbox[s]:buttons(awful.util.table.join(
@@ -508,18 +502,18 @@ for s = 1, screen.count() do
     layout:set_right(right_layout)
 
     mywibox[s]:set_widget(layout)
-    
+
     -- Create the bottom wibox
     mybottomwibox[s] = awful.wibox({ position = "bottom", screen = s, border_width = 0, height = 20 })
     mybottomwibox[s].visible = false
-    
+
     -- Widgets that are aligned to the left
     bottom_left_layout = wibox.layout.fixed.horizontal()
     bottom_left_layout:add(space) 
 
     -- Widgets that are aligned to the right
     bottom_right_layout = wibox.layout.fixed.horizontal()
-    bottom_right_layout:add(space) 
+    bottom_right_layout:add(space)
     if s == 1 then bottom_right_layout:add(wibox.widget.systray()) end
     bottom_right_layout:add(mylayoutbox[s])
 
