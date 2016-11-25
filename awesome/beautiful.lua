@@ -2,7 +2,7 @@
 -- @author Damien Leone &lt;damien.leone@gmail.com&gt;
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @copyright 2008-2009 Damien Leone, Julien Danjou
--- @release v3.5.2
+-- @release v3.5.9
 ----------------------------------------------------------------------------
 
 -- Grab environment
@@ -72,23 +72,24 @@ end
 function beautiful.init(path)
     if path then
         local success
+
+        -- try and grab user's $HOME directory and expand '~'
+        local homedir = os.getenv("HOME")
+        path = path:gsub("^~/", homedir .. "/")
+
         success, theme = pcall(function() return dofile(path) end)
 
         if not success then
             return print("E: beautiful: error loading theme file " .. theme)
         elseif theme then
-            -- try and grab user's $HOME directory
-            local homedir = os.getenv("HOME")
             -- expand '~'
             if homedir then
                 for k, v in pairs(theme) do
-                    if type(v) == "string" then theme[k] = v:gsub("~", homedir) end
+                    if type(v) == "string" then theme[k] = v:gsub("^~/", homedir .. "/") end
                 end
             end
 
             if theme.font then set_font(theme.font) end
-            if theme.fg_normal then capi.awesome.fg = theme.fg_normal end
-            if theme.bg_normal then capi.awesome.bg = theme.bg_normal end
         else
             return print("E: beautiful: error loading theme file " .. path)
         end

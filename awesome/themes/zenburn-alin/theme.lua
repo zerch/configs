@@ -15,8 +15,8 @@ theme = {}
 home = os.getenv("HOME")
 config = home .. "/.config/awesome"
 themes = config .. "/themes"
-themename = "/zenburn-alin"
-themedir = themes .. themename
+themename = "zenburn-alin"
+themedir = themes .. "/" .. themename
 
 wallpaper_one = themedir .. "/zenburn-background.png"
 
@@ -32,8 +32,8 @@ end
 -- }}}
 
 -- {{{ Styles
-theme.font      = "monospace 9"
-theme.taglist_font      = "monospace 12"
+theme.font      = "monospace 10"
+theme.taglist_font      = "monospace 14"
 
 -- {{{ Colors
 --theme.bg_systray = theme.bg_normal

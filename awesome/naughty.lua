@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 -- @author koniu &lt;gkusnierz@gmail.com&gt;
 -- @copyright 2008 koniu
--- @release v3.5.2
+-- @release v3.5.9
 ----------------------------------------------------------------------------
 
 -- Package environment
@@ -61,7 +61,6 @@ naughty.config.notify_callback = nil
 -- @field low The preset for notifications with low urgency level
 -- @field normal The default preset for every notification without a preset that will also be used for normal urgency level
 -- @field critical The preset for notifications with a critical urgency level
--- @class table
 naughty.config.presets = {
     normal = {},
     low = {
@@ -410,7 +409,7 @@ function naughty.notify(args)
         end
 
         -- is the icon file readable?
-        local success, res = pcall(function() return surface.load(icon) end)
+        local success, res = pcall(function() return surface.load_uncached(icon) end)
         if success then
             icon = res
         else

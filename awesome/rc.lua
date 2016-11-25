@@ -1,47 +1,44 @@
-
--- {{{ Required Libraries
-
+-- Standard awesome library
 local gears         = require("gears")
 local awful         = require("awful")
-awful.rules         = require("awful.rules")
+      awful.rules         = require("awful.rules")
 require("awful.autofocus")
+
+-- Widget and layout library
 local wibox         = require("wibox")
+
+-- Theme handling library
 local beautiful     = require("beautiful")
+
+-- Notification library
 local naughty       = require("naughty")
-vicious             = require("vicious")
 local menubar       = require("menubar")
 
--- }}}
+-- Vicious library
+vicious = require("vicious")
+
+-- BlingBling library
+blingbling = require("blingbling")
 
 -- {{{ Autostart
-
 function run_once(cmd)
-  findme = cmd
-  firstspace = cmd:find(" ")
-  if firstspace then
-     findme = cmd:sub(0, firstspace-1)
-  end
-  awful.util.spawn_with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
- end 
-
---run_once("xrandr --output DP-1 --mode 1920x1080 --pos 0x0 --output LVDS-0 --mode 1600x900 --pos 1920x0 --rotate normal --right-of DP-1")
---run_once("xrandr --output VGA-0 --mode 1360x768 --pos 0x0 --output LVDS-0 --mode 1600x900 --pos 13600x0 --rotate normal --right-of VGA-0")
--- }}}
+    findme = cmd
+    firstspace = cmd:find(" ")
+    if firstspace then
+        findme = cmd:sub(0, firstspace-1)
+    end
+    awful.util.spawn_with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
+end
 
 -- {{{ Error handling
-
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
-
 if awesome.startup_errors then
     naughty.notify({ preset = naughty.config.presets.critical,
                      title = "Oops, there were errors during startup!",
                      text = awesome.startup_errors })
 end
-
-
 -- Handle runtime errors after startup
-
 do
     local in_error = false
     awesome.connect_signal("debug::error", function (err)
@@ -56,24 +53,26 @@ do
     end)
 end
 
--- }}}
-
-
 -- {{{ Variable definitions
-
--- Themes define colours, icons, and wallpapers
-
 home          = os.getenv("HOME")
 config        = awful.util.getdir("config")
-confdir       = config
 themes        = config .. "/themes"
-themename     = "/zenburn-alin"
-themedir      = themes .. themename
+themename     = "zenburn-alin"
+themedir      = themes .. "/" .. themename
 
-
+-- Themes define colours, icons, font and wallpapers.
 beautiful.init(themedir .. "/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
+terminal = "urxvtc"
+editor = os.getenv("EDITOR") or "vim"
+editor_cmd = terminal .. " -e " .. editor
+
+-- Optional variables used for the desktop menu
+browser       = "firefox"
+chat          = "skype"
+mail          = "thunderbird"
+clementine    = "clementine"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -82,7 +81,6 @@ beautiful.init(themedir .. "/theme.lua")
 -- However, you can use another modifier like Mod1, but it may interact with others.
 modkey = "Mod4"
 altkey = "Mod1"
-
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 local layouts =
@@ -100,20 +98,15 @@ local layouts =
     --awful.layout.suit.max.fullscreen,
     --awful.layout.suit.magnifier
 }
--- }}}
 
 -- {{{ Wallpaper
-
 if beautiful.wallpaper then
     for s = 1, screen.count() do
         gears.wallpaper.maximized(beautiful.wallpaper, s, true)
     end
 end
--- }}}
-
 
 -- {{{ Function definitions
-
 -- If you can't seem switch to a Java window using your keyboard:
 function delay_raise()
     -- 5 ms ages in computer time, unnoticeable
@@ -128,7 +121,6 @@ function delay_raise()
 end
 
 -- scan directory, and optionally filter outputs
-
 function randomize_lista(a)
     return a[math.random(#a)]
 end
@@ -147,32 +139,23 @@ function scandir(directory, filter)
     end
     return t
 end
----- }}}
-
-
----- {{{ Configuration
 
 wp_index = 1
 wp_timeout  = 600
-wp_path = "/Msome_path</Wallpapers/"
+wp_path = home .. "/Wallpapers/"
 wp_filter = function(s) return string.match(s,"%.png$") or string.match(s,"%.jpg$") or string.match(s,"%.jpeg$") end
 wp_files = scandir(wp_path, wp_filter)
-
 -- setup the timer
 wp_timer = timer { timeout = wp_timeout }
 wp_timer:connect_signal("timeout", function()
-
   -- set wallpaper to current index for all screens
   for s = 1, screen.count() do
     gears.wallpaper.maximized(wp_path .. wp_files[wp_index], s, true)
   end
-
   -- stop the timer (we don't need multiple instances running at the same time)
   wp_timer:stop()
-
   -- get next random index
   wp_index = math.random( 1, #wp_files)
-
   --restart the timer
   wp_timer.timeout = wp_timeout
   wp_timer:start()
@@ -181,9 +164,6 @@ end)
 -- initial start when rc.lua is first run
 wp_timer:start()
 
-
--- }}}
-
 -- {{{ Tags
 -- Define a tag table which hold all screen tags.
 tags = {}
@@ -191,7 +171,6 @@ for s = 1, screen.count() do
     -- Each screen has its own tag table.
     tags[s] = awful.tag({ " ☠ ", " ⌥ ", " ✇ ", " ⍜ ", " ✣ ", " ⌨ ", " ⌘ ", " ☕ " }, s, layouts[1])
 end
--- }}}
 
 -- {{{ Menu
 -- Create a laucher widget and a main menu
@@ -219,42 +198,28 @@ mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
 -- Menubar configuration
 menubar.utils.terminal = terminal -- Set the terminal for applications that require it
 
--- }}}
-
 -- {{{ Calendar
-
 local blingbling = require("blingbling")
 my_cal=blingbling.calendar.new({type = "imagebox", image = beautiful.calendar_icon})
-
--- }}}
 
 -- {{{ Clock
 --mytextclock = awful.widget.textclock("%a %b %d, %H:%M:%S", 1)
 mytextclockicon = wibox.widget.imagebox()
 mytextclockicon:set_image(beautiful.widget_clock)
 
--- }}}
-
 -- {{{ Kernel Info
-
 sysicon = wibox.widget.imagebox()
 sysicon:set_image(beautiful.widget_sys)
 syswidget = wibox.widget.textbox()
 vicious.register( syswidget, vicious.widgets.os, "<span color=\"#66ff33\">$2</span>")
 
--- }}}
-
 -- {{{ Uptime
-
 uptimeicon = wibox.widget.imagebox()
 uptimeicon:set_image(beautiful.widget_uptime)
 uptimewidget = wibox.widget.textbox()
 vicious.register( uptimewidget, vicious.widgets.uptime, "<span color=\"#66ff33\">$2.$3'</span>")
 
--- }}}
-
 -- {{{ Temp
-
 tempicon = wibox.widget.imagebox()
 tempicon:set_image(beautiful.widget_temp)
 tempicon:buttons(awful.util.table.join(
@@ -264,19 +229,19 @@ tempwidget = wibox.widget.textbox()
 vicious.register(tempwidget, vicious.widgets.thermal, "<span color=\"#66ff33\">°C</span>", 9, { "coretemp.0", "core"} )
 
 local function disptemp()
-	local f, infos
-	local capi = {
-		mouse = mouse,
-		screen = screen
-	}
+    local f, infos
+    local capi = {
+    mouse = mouse,
+        screen = screen
+    }
 
-	f = io.popen("sensors && hddtemp /dev/sda")
-	infos = f:read("*all")
-	f:close()
+    f = io.popen("sensors && hddtemp /dev/sda")
+    infos = f:read("*all")
+    f:close()
 
-	showtempinfo = naughty.notify( {
-		text	= infos,
-		timeout	= 0,
+    showtempinfo = naughty.notify( {
+        text	= infos,
+        timeout	= 0,
         position = "bottom_right",
         margin = 10,
         height = 230,
@@ -284,16 +249,13 @@ local function disptemp()
         border_color = '#404040',
         border_width = 1,
         -- opacity = 0.95,
-		screen	= capi.mouse.screen })
+        screen	= capi.mouse.screen })
 end
 
 tempwidget:connect_signal('mouse::enter', function () disptemp(path) end)
 tempwidget:connect_signal('mouse::leave', function () naughty.destroy(showtempinfo) end)
 
--- }}}
-
 -- {{{ Volume
-
 volicon = wibox.widget.imagebox()
 volicon:set_image(beautiful.widget_vol)
 volumewidget = wibox.widget.textbox()
@@ -305,10 +267,7 @@ volumewidget:buttons(awful.util.table.join(
     awful.button({ }, 5, function () awful.util.spawn("amixer -q sset Master 1dB-", false) end)
 ))
 
--- }}}
-
 -- {{{ Cpu
-
 cpuicon = wibox.widget.imagebox()
 cpuicon:set_image(beautiful.widget_cpu)
 cpuwidget = wibox.widget.textbox()
@@ -317,10 +276,7 @@ cpuicon:buttons(awful.util.table.join(
     awful.button({ }, 1, function () awful.util.spawn("" .. terminal .. " -e saidar -c", false) end)
 ))
 
--- }}}
-
 -- {{{ Ram
-
 memicon = wibox.widget.imagebox()
 memicon:set_image(beautiful.widget_mem)
 memwidget = wibox.widget.textbox()
@@ -329,10 +285,7 @@ memicon:buttons(awful.util.table.join(
     awful.button({ }, 1, function () awful.util.spawn("" .. terminal .. " -e htop", false) end)
 ))
 
--- }}}
-
 -- {{{ Hard Drives
-
 fsicon = wibox.widget.imagebox()
 fsicon:set_image(beautiful.widget_fs)
 -- vicious.cache(vicious.widgets.fs)
@@ -340,19 +293,19 @@ fswidget = wibox.widget.textbox()
 vicious.register(fswidget, vicious.widgets.fs, "<span color=\"#66ff33\">${/ used_p}%</span>", 10)
 
 local function dispdisk()
-	local f, infos
-	local capi = {
-		mouse = mouse,
-		screen = screen
-	}
+    local f, infos
+    local capi = {
+        mouse = mouse,
+        screen = screen
+    }
 
-	f = io.popen("dfc -d | grep /dev/sda")
-	infos = f:read("*all")
-	f:close()
+    f = io.popen("dfc -d | grep /dev/sda")
+    infos = f:read("*all")
+    f:close()
 
-	showdiskinfo = naughty.notify( {
-		text	= infos,
-		timeout	= 0,
+    showdiskinfo = naughty.notify( {
+        text	= infos,
+        timeout	= 0,
         position = "top_right",
         margin = 10,
         height = 77,
@@ -360,16 +313,13 @@ local function dispdisk()
         border_color = '#404040',
         border_width = 1,
         -- opacity = 0.95,
-		screen	= capi.mouse.screen })
+        screen	= capi.mouse.screen })
 end
 
 fswidget:connect_signal('mouse::enter', function () dispdisk(path) end)
 fswidget:connect_signal('mouse::leave', function () naughty.destroy(showdiskinfo) end)
 
--- }}}
-
 -- {{{ Spacers
-
 rbracket = wibox.widget.textbox()
 rbracket:set_text(']')
 lbracket = wibox.widget.textbox()
@@ -379,10 +329,7 @@ line:set_text('|')
 space = wibox.widget.textbox()
 space:set_text(' ')
 
--- }}}
-
 -- {{{ Layout
-
 -- Create a wibox for each screen and add it
 mywibox = {}
 mybottomwibox = {}
@@ -433,7 +380,6 @@ mytasklist.buttons = awful.util.table.join(
                                           end))
 
 for s = 1, screen.count() do
-
     -- Create a promptbox for each screen
     mypromptbox[s] = awful.widget.prompt()
 
@@ -513,7 +459,7 @@ for s = 1, screen.count() do
 
     -- Widgets that are aligned to the right
     bottom_right_layout = wibox.layout.fixed.horizontal()
-    bottom_right_layout:add(space)
+    bottom_right_layout:add(space) 
     if s == 1 then bottom_right_layout:add(wibox.widget.systray()) end
     bottom_right_layout:add(mylayoutbox[s])
 
@@ -526,22 +472,14 @@ for s = 1, screen.count() do
 
 end
 
--- }}}
-
--- }}}
-
 -- {{{ Mouse Bindings
-
 root.buttons(awful.util.table.join(
     awful.button({ }, 3, function () mymainmenu:toggle() end),
     awful.button({ }, 4, awful.tag.viewnext),
     awful.button({ }, 5, awful.tag.viewprev)
 ))
 
--- }}}
-
 -- {{{ Key Bindings
-
 globalkeys = awful.util.table.join(
     awful.key({ modkey, "Control" }, "Left",   awful.tag.viewprev       ),
     awful.key({ modkey, "Control" }, "Right",  awful.tag.viewnext       ),
@@ -600,7 +538,6 @@ globalkeys = awful.util.table.join(
     -- Prompt
     awful.key({ modkey }, "r",      function () mypromptbox[mouse.screen]:run() end),
     awful.key({ modkey, "Control" }, ",", awful.client.restore)
-    
 )
 
 clientkeys = awful.util.table.join(
@@ -624,7 +561,6 @@ clientkeys = awful.util.table.join(
         function (c)
             c.maximized_horizontal = not c.maximized_horizontal
         end)
-        
 )
 
 -- Compute the maximum number of digit we need, limited to 9
@@ -674,11 +610,7 @@ clientbuttons = awful.util.table.join(
 -- Set keys
 root.keys(globalkeys)
 
--- }}}
-
-
 -- {{{ Rules
-
 awful.rules.rules = {
     -- All clients will match this rule.
     { rule = { },
@@ -689,15 +621,12 @@ awful.rules.rules = {
                      maximized_vertical = false,
                      maximized_horizontal = false,
                      buttons = clientbuttons,
-	                 size_hints_honor = false
+                     size_hints_honor = false
                     }
    },
 }
 
--- }}}
-
 -- {{{ Signals
-
 -- Signal function to execute when a new client appears.
 client.connect_signal("manage", function (c, startup)
     -- Enable sloppy focus
@@ -761,5 +690,3 @@ end)
 
 client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
-
--- }}}
