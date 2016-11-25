@@ -1,0 +1,5 @@
+let g:spf13_use_powerline = 1
+" let g:spf13_use_old_powerline = 1
+
+let g:spf13_bundle_groups=['haos']
+let g:override_spf13_bundles = 1

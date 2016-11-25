@@ -1,0 +1,34 @@
+runtime! archlinux.vim
+
+set t_Co=256
+
+set nofoldenable
+set wrap
+set nospell
+set history=5000
+set nonumber
+
+colorscheme burnttoast256
+
+vmap <F7> :!xclip -f -sel clip<CR> " F7: copy selection to xorg clipboard
+map <F8> :-1r !xclip -o -sel p<CR> " F8: paste xorg clipboard (middleclick)
+:noremap <silent> <Space> :silent noh<Bar>echo<CR> " Space: unhighlight search
+
+" vim-signify
+let g:signify_vcs_list = [ 'git' ]
+
+" vim-syntastic
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+
+" vim-rainbow
+let g:rainbow_active = 1
+
+" vim-powerline
+let g:powerline_pycmd = "py3"

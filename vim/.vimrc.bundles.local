@@ -1,0 +1,34 @@
+if count(g:spf13_bundle_groups, 'haos')
+    Bundle 'spf13/vim-colors'
+    Bundle 'jiangmiao/auto-pairs'
+    Bundle 'matchit.zip'
+    if (has("python") || has("python3")) && exists('g:spf13_use_powerline') && !exists('g:spf13_use_old_powerline')
+        Bundle 'Lokaltog/powerline', {'rtp':'/powerline/bindings/vim'}
+    elseif exists('g:spf13_use_powerline') && exists('g:spf13_use_old_powerline')
+        Bundle 'Lokaltog/vim-powerline'
+    else
+        Bundle 'vim-airline/vim-airline'
+        Bundle 'vim-airline/vim-airline-themes'
+    endif
+    Bundle 'powerline/fonts'
+    Bundle 'bling/vim-bufferline'
+    Bundle 'flazz/vim-colorschemes'
+    Bundle 'nathanaelkane/vim-indent-guides'
+    if !exists('g:spf13_no_views')
+        Bundle 'vim-scripts/restore_view.vim'
+    endif
+    Bundle 'mhinz/vim-signify'
+    Bundle 'tpope/vim-abolish.git'
+    Bundle 'osyo-manga/vim-over'
+    Bundle 'scrooloose/syntastic'
+    Bundle 'tpope/vim-fugitive'
+    Bundle 'mattn/webapi-vim'
+    Bundle 'scrooloose/nerdcommenter'
+    Bundle 'luochen1990/rainbow'
+    Bundle 'klen/python-mode'
+    Bundle 'yssource/python.vim'
+    Bundle 'python_match.vim'
+    Bundle 'pythoncomplete'
+    Bundle 'cespare/vim-toml'
+endif
+" }
