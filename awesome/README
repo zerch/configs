@@ -1,0 +1,62 @@
+---Mouse Bindings
+
+right click on empty screen             brings up menu
+left click on tag                       view tag
+scroll om tag                           next/prev tag
+scroll/click on layout                  cycle layouts
+modkey + left click on tag              pin client to that tag only 
+modkey + right click on tag             pin/unpin client to that tag 
+right click on tag                      view multiple tags in same view
+modkey + left click                     move window
+modkey + right click                    resize window
+
+---Key Bindings
+
+modkey + control + r                    restart awesome
+modkey + shift   + q                    quit awesome
+modkey +         + r                    run command
+modkey +         + return               start terminal (urxvt)
+modkey +         + w                    brings up menu
+
+modkey +         + m                    toggle client full maximize/unmaximize
+modkey +         + k                    toggle client horizontal maximize/unmaximize
+modkey +         + j                    toggle client vertical maximize/unmaximize
+modkey +         + ,                    minimize client
+modkey + control + ,                    restore client from minimize
+alt    +         + f                    toggle client fullscreen
+modkey +         + c                    kill client
+         control + t                    toggle client on top even when not focused
+
+modkey +         + left                 focus on next client
+modkey +         + right                focus on previous client
+modkey + control + left                 view next tag
+modkey + control + right                view previous tag
+modkey +         + 1-9                  switch to tag 1-9
+modkey + alt     + left                 focus next screen
+modkey + alt     + right                focus previous screen
+modkey + control + escape               focus on last visited tag
+modkey +         + tab                  client focus on last visited
+
+alt    +         + left                 swap clients by ids next (change position in taskbar)
+alt    +         + right                swap clients by ids previous (change position in taskbar)
+modkey +         + o                    move focused client to next screen
+modkey +         + l                    decrease master client width
+modkey +         + h                    increase master client width
+modkey + shift   + l                    decrease number of master clients by 1
+modkey + shift   + h                    increase number of master clients by 1
+modkey + control + l                    decrease number of columns for non-master clients by 1
+modkey + control + h                    increase number of columns for non-master clients by 1
+modkey +         + space                switch to next layout
+modkey + shift   + space                switch to prev layout
+modkey + control + space                toggle client floating
+modkey + control + return               swap client to master
+modkey + control + 1-9                  select multiple tags in one view
+modkey + shift   + 1-9                  pin client to that tag only
+modkey + shift + control + 1-9          pin/unpin client to that tag
+
+modkey +         + b                    hide/show upper bar
+modkey + alt     + b                    hide/show lower bar
+modkey +         + plus                 volume up
+modkey +         + minus                volume down
+printscreen                             take screenshot
+modkey +         + x                    lock screen
