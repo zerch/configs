@@ -150,12 +150,12 @@ wp_timer = timer { timeout = wp_timeout }
 wp_timer:connect_signal("timeout", function()
   -- set wallpaper to current index for all screens
   for s = 1, screen.count() do
+    -- get next random index
+    wp_index = math.random( 1, #wp_files)
     gears.wallpaper.maximized(wp_path .. wp_files[wp_index], s, true)
   end
   -- stop the timer (we don't need multiple instances running at the same time)
   wp_timer:stop()
-  -- get next random index
-  wp_index = math.random( 1, #wp_files)
   --restart the timer
   wp_timer.timeout = wp_timeout
   wp_timer:start()
