@@ -1,16 +1,25 @@
 ---------------------------------------------------------------------------
+--- Maximized and fullscreen layouts module for awful
+--
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @copyright 2008 Julien Danjou
--- @release v3.5.9
+-- @module awful.layout
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
 local pairs = pairs
-local client = require("awful.client")
 
---- Maximized and fullscreen layouts module for awful
--- awful.layout.suit.max
 local max = {}
+
+--- The max layout layoutbox icon.
+-- @beautiful beautiful.layout_max
+-- @param surface
+-- @see gears.surface
+
+--- The fullscreen layout layoutbox icon.
+-- @beautiful beautiful.layout_fullscreen
+-- @param surface
+-- @see gears.surface
 
 local function fmax(p, fs)
     -- Fullscreen?
@@ -21,26 +30,26 @@ local function fmax(p, fs)
         area = p.workarea
     end
 
-    for k, c in pairs(p.clients) do
+    for _, c in pairs(p.clients) do
         local g = {
             x = area.x,
             y = area.y,
-            width = area.width - c.border_width * 2,
-            height = area.height - c.border_width * 2
+            width = area.width,
+            height = area.height
         }
-        c:geometry(g)
+        p.geometries[c] = g
     end
 end
 
 --- Maximized layout.
--- @param screen The screen to arrange.
+-- @clientlayout awful.layout.suit.max.name
 max.name = "max"
 function max.arrange(p)
     return fmax(p, false)
 end
 
 --- Fullscreen layout.
--- @param screen The screen to arrange.
+-- @clientlayout awful.layout.suit.max.fullscreen
 max.fullscreen = {}
 max.fullscreen.name = "fullscreen"
 function max.fullscreen.arrange(p)
@@ -48,3 +57,5 @@ function max.fullscreen.arrange(p)
 end
 
 return max
+
+-- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

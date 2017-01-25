@@ -1,15 +1,27 @@
 ---------------------------------------------------------------------------
+--- Dwindle and spiral layouts
+--
 -- @author Uli Schlachter &lt;psychon@znc.in&gt;
 -- @copyright 2009 Uli Schlachter
 -- @copyright 2008 Julien Danjou
--- @release v3.5.9
+--
+-- @module awful.layout
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
 local ipairs = ipairs
 local math = math
 
--- awful.layout.suit.spiral
+--- The spiral layout layoutbox icon.
+-- @beautiful beautiful.layout_spiral
+-- @param surface
+-- @see gears.surface
+
+--- The dwindle layout layoutbox icon.
+-- @beautiful beautiful.layout_dwindle
+-- @param surface
+-- @see gears.surface
+
 local spiral = {}
 
 local function do_spiral(p, _spiral)
@@ -50,21 +62,23 @@ local function do_spiral(p, _spiral)
         local g = {
             x = wa.x,
             y = wa.y,
-            width = wa.width - 2 * c.border_width,
-            height = wa.height - 2 * c.border_width
+            width = wa.width,
+            height = wa.height
         }
-        c:geometry(g)
+        p.geometries[c] = g
     end
 end
 
---- Dwindle layout
+--- Dwindle layout.
+-- @clientlayout awful.layout.suit.spiral.dwindle
 spiral.dwindle = {}
 spiral.dwindle.name = "dwindle"
 function spiral.dwindle.arrange(p)
     return do_spiral(p, false)
 end
 
---- Spiral layout
+--- Spiral layout.
+-- @clientlayout awful.layout.suit.spiral.name
 spiral.name = "spiral"
 function spiral.arrange(p)
     return do_spiral(p, true)

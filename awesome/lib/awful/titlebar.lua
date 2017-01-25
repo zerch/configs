@@ -1,25 +1,222 @@
 ---------------------------------------------------------------------------
+--- Titlebars for awful.
+--
 -- @author Uli Schlachter
 -- @copyright 2012 Uli Schlachter
--- @release v3.5.9
+-- @module awful.titlebar
 ---------------------------------------------------------------------------
 
 local error = error
 local type = type
+local util = require("awful.util")
 local abutton = require("awful.button")
 local aclient = require("awful.client")
+local atooltip = require("awful.tooltip")
 local beautiful = require("beautiful")
-local object = require("gears.object")
 local drawable = require("wibox.drawable")
-local base = require("wibox.widget.base")
 local imagebox = require("wibox.widget.imagebox")
 local textbox = require("wibox.widget.textbox")
+local base = require("wibox.widget.base")
 local capi = {
     client = client
 }
 local titlebar = {
     widget = {}
 }
+
+--- The titlebar foreground (text) color.
+-- @beautiful beautiful.titlebar_fg_normal
+-- @param color
+-- @see gears.color
+
+--- The titlebar background color.
+-- @beautiful beautiful.titlebar_bg_normal
+-- @param color
+-- @see gears.color
+
+--- The titlebar background image image.
+-- @beautiful beautiful.titlebar_bgimage_normal
+-- @param surface
+-- @see gears.surface
+
+--- The titlebar foreground (text) color.
+-- @beautiful beautiful.titlebar_fg
+-- @param color
+-- @see gears.color
+
+--- The titlebar background color.
+-- @beautiful beautiful.titlebar_bg
+-- @param color
+-- @see gears.color
+
+--- The titlebar background image image.
+-- @beautiful beautiful.titlebar_bgimage
+-- @param surface
+-- @see gears.surface
+
+--- The focused titlebar foreground (text) color.
+-- @beautiful beautiful.titlebar_fg_focus
+-- @param color
+-- @see gears.color
+
+--- The focused titlebar background color.
+-- @beautiful beautiful.titlebar_bg_focus
+-- @param color
+-- @see gears.color
+
+--- The focused titlebar background image image.
+-- @beautiful beautiful.titlebar_bgimage_focus
+-- @param surface
+-- @see gears.surface
+
+--- floating_button_normal.
+-- @beautiful beautiful.titlebar_floating_button_normal
+-- @param surface
+-- @see gears.surface
+
+--- maximized_button_normal.
+-- @beautiful beautiful.titlebar_maximized_button_normal
+-- @param surface
+-- @see gears.surface
+
+--- minimize_button_normal
+-- @beautiful beautiful.titlebar_minimize_button_normal
+-- @param surface
+-- @see gears.surface
+
+--- close_button_normal.
+-- @beautiful beautiful.titlebar_close_button_normal
+-- @param surface
+-- @see gears.surface
+
+--- ontop_button_normal.
+-- @beautiful beautiful.titlebar_ontop_button_normal
+-- @param surface
+-- @see gears.surface
+
+--- sticky_button_normal.
+-- @beautiful beautiful.titlebar_sticky_button_normal
+-- @param surface
+-- @see gears.surface
+
+--- floating_button_focus.
+-- @beautiful beautiful.titlebar_floating_button_focus
+-- @param surface
+-- @see gears.surface
+
+--- maximized_button_focus.
+-- @beautiful beautiful.titlebar_maximized_button_focus
+-- @param surface
+-- @see gears.surface
+
+--- minimize_button_focus.
+-- @beautiful beautiful.titlebar_minimize_button_focus
+-- @param surface
+-- @see gears.surface
+
+--- close_button_focus.
+-- @beautiful beautiful.titlebar_close_button_focus
+-- @param surface
+-- @see gears.surface
+
+--- ontop_button_focus.
+-- @beautiful beautiful.titlebar_ontop_button_focus
+-- @param surface
+-- @see gears.surface
+
+--- sticky_button_focus.
+-- @beautiful beautiful.titlebar_sticky_button_focus
+-- @param surface
+-- @see gears.surface
+
+--- floating_button_normal_active.
+-- @beautiful beautiful.titlebar_floating_button_normal_active
+-- @param surface
+-- @see gears.surface
+
+--- maximized_button_normal_active.
+-- @beautiful beautiful.titlebar_maximized_button_normal_active
+-- @param surface
+-- @see gears.surface
+
+--- ontop_button_normal_active.
+-- @beautiful beautiful.titlebar_ontop_button_normal_active
+-- @param surface
+-- @see gears.surface
+
+--- sticky_button_normal_active.
+-- @beautiful beautiful.titlebar_sticky_button_normal_active
+-- @param surface
+-- @see gears.surface
+
+--- floating_button_focus_active.
+-- @beautiful beautiful.titlebar_floating_button_focus_active
+-- @param surface
+-- @see gears.surface
+
+--- maximized_button_focus_active.
+-- @beautiful beautiful.titlebar_maximized_button_focus_active
+-- @param surface
+-- @see gears.surface
+
+--- ontop_button_focus_active.
+-- @beautiful beautiful.titlebar_ontop_button_focus_active
+-- @param surface
+-- @see gears.surface
+
+--- sticky_button_focus_active.
+-- @beautiful beautiful.titlebar_sticky_button_focus_active
+-- @param surface
+-- @see gears.surface
+
+--- floating_button_normal_inactive.
+-- @beautiful beautiful.titlebar_floating_button_normal_inactive
+-- @param surface
+-- @see gears.surface
+
+--- maximized_button_normal_inactive.
+-- @beautiful beautiful.titlebar_maximized_button_normal_inactive
+-- @param surface
+-- @see gears.surface
+
+--- ontop_button_normal_inactive.
+-- @beautiful beautiful.titlebar_ontop_button_normal_inactive
+-- @param surface
+-- @see gears.surface
+
+--- sticky_button_normal_inactive.
+-- @beautiful beautiful.titlebar_sticky_button_normal_inactive
+-- @param surface
+-- @see gears.surface
+
+--- floating_button_focus_inactive.
+-- @beautiful beautiful.titlebar_floating_button_focus_inactive
+-- @param surface
+-- @see gears.surface
+
+--- maximized_button_focus_inactive.
+-- @beautiful beautiful.titlebar_maximized_button_focus_inactive
+-- @param surface
+-- @see gears.surface
+
+--- ontop_button_focus_inactive.
+-- @beautiful beautiful.titlebar_ontop_button_focus_inactive
+-- @param surface
+-- @see gears.surface
+
+--- sticky_button_focus_inactive.
+-- @beautiful beautiful.titlebar_sticky_button_focus_inactive
+-- @param surface
+-- @see gears.surface
+
+--- Set a declarative widget hierarchy description.
+-- See [The declarative layout system](../documentation/03-declarative-layout.md.html)
+-- @param args An array containing the widgets disposition
+-- @name setup
+-- @class function
+
+--- Show tooltips when hover on titlebar buttons (defaults to 'true')
+titlebar.enable_tooltip = true
 
 local all_titlebars = setmetatable({}, { __mode = 'k' })
 
@@ -51,16 +248,23 @@ end
 
 --- Get a client's titlebar
 -- @class function
--- @param c The client for which a titlebar is wanted.
--- @param args An optional table with extra arguments for the titlebar. The
--- "size" is the height of the titlebar. Available "position" values are top,
--- left, right and bottom. Additionally, the foreground and background colors
--- can be configured via e.g. "bg_normal" and "bg_focus".
+-- @tparam client c The client for which a titlebar is wanted.
+-- @tparam[opt={}] table args A table with extra arguments for the titlebar.
+-- @tparam[opt=font.height*1.5] number args.size The height of the titlebar.
+-- @tparam[opt=top] string args.position" values are `top`,
+-- `left`, `right` and `bottom`.
+-- @tparam[opt=top] string args.bg_normal
+-- @tparam[opt=top] string args.bg_focus
+-- @tparam[opt=top] string args.bgimage_normal
+-- @tparam[opt=top] string args.bgimage_focus
+-- @tparam[opt=top] string args.fg_normal
+-- @tparam[opt=top] string args.fg_focus
+-- @tparam[opt=top] string args.font
 -- @name titlebar
 local function new(c, args)
-    local args = args or {}
+    args = args or {}
     local position = args.position or "top"
-    local size = args.size or beautiful.get_font_height(args.font) * 1.5
+    local size = args.size or util.round(beautiful.get_font_height(args.font) * 1.5)
     local d = get_titlebar_function(c, position)(c, size)
 
     -- Make sure that there is never more than one titlebar for any given client
@@ -72,11 +276,17 @@ local function new(c, args)
 
     local ret
     if not bars[position] then
-        ret = drawable(d, nil)
+        local context = {
+            client = c,
+            position = position
+        }
+        ret = drawable(d, context, "awful.titlebar")
+        ret:_inform_visible(true)
         local function update_colors()
-            local args = bars[position].args
-            ret:set_bg(get_color("bg", c, args))
-            ret:set_fg(get_color("fg", c, args))
+            local args_ = bars[position].args
+            ret:set_bg(get_color("bg", c, args_))
+            ret:set_fg(get_color("fg", c, args_))
+            ret:set_bgimage(get_color("bgimage", c, args_))
         end
 
         bars[position] = {
@@ -88,6 +298,9 @@ local function new(c, args)
         -- Update the colors when focus changes
         c:connect_signal("focus", update_colors)
         c:connect_signal("unfocus", update_colors)
+
+        -- Inform the drawable when it becomes invisible
+        c:connect_signal("unmanage", function() ret:_inform_visible(false) end)
     else
         bars[position].args = args
         ret = bars[position].drawable
@@ -96,15 +309,18 @@ local function new(c, args)
     -- Make sure the titlebar has the right colors applied
     bars[position].update_colors()
 
+    -- Handle declarative/recursive widget container
+    ret.setup = base.widget.setup
+
     return ret
 end
 
 --- Show a client's titlebar.
 -- @param c The client whose titlebar is modified
--- @param position Optional position of the titlebar. Must be one of "left",
---        "right", "top", "bottom". Default is "top".
+-- @param[opt] position The position of the titlebar. Must be one of "left",
+--   "right", "top", "bottom". Default is "top".
 function titlebar.show(c, position)
-    local position = position or "top"
+    position = position or "top"
     local bars = all_titlebars[c]
     local data = bars and bars[position]
     local args = data and data.args
@@ -113,20 +329,20 @@ end
 
 --- Hide a client's titlebar.
 -- @param c The client whose titlebar is modified
--- @param position Optional position of the titlebar. Must be one of "left",
---        "right", "top", "bottom". Default is "top".
+-- @param[opt] position The position of the titlebar. Must be one of "left",
+--   "right", "top", "bottom". Default is "top".
 function titlebar.hide(c, position)
-    local position = position or "top"
+    position = position or "top"
     get_titlebar_function(c, position)(c, 0)
 end
 
 --- Toggle a client's titlebar, hiding it if it is visible, otherwise showing it.
 -- @param c The client whose titlebar is modified
--- @param position Optional position of the titlebar. Must be one of "left",
---        "right", "top", "bottom". Default is "top".
+-- @param[opt] position The position of the titlebar. Must be one of "left",
+--   "right", "top", "bottom". Default is "top".
 function titlebar.toggle(c, position)
-    local position = position or "top"
-    local drawable, size = get_titlebar_function(c, position)(c)
+    position = position or "top"
+    local _, size = get_titlebar_function(c, position)(c)
     if size == 0 then
         titlebar.show(c, position)
     else
@@ -174,12 +390,19 @@ end
 -- then found in the theme as "titlebar_[name]_button_[normal/focus]_[state]".
 -- If that value does not exist, the focused state is ignored for the next try.
 -- @param c The client for which a button is created.
--- @param name Name of the button, used for accessing the theme.
+-- @tparam string name Name of the button, used for accessing the theme and
+--   in the tooltip.
 -- @param selector A function that selects the image that should be displayed.
 -- @param action Function that is called when the button is clicked.
 -- @return The widget
 function titlebar.widget.button(c, name, selector, action)
     local ret = imagebox()
+
+    if titlebar.enable_tooltip then
+        ret._private.tooltip = atooltip({ objects = {ret}, delay_show = 1 })
+        ret._private.tooltip:set_text(name)
+    end
+
     local function update()
         local img = selector(c)
         if type(img) ~= "nil" then
@@ -191,7 +414,6 @@ function titlebar.widget.button(c, name, selector, action)
                     img = "inactive"
                 end
             end
-            -- First try with a prefix based on the client's focus state
             local prefix = "normal"
             if capi.client.focus == c then
                 prefix = "focus"
@@ -199,11 +421,12 @@ function titlebar.widget.button(c, name, selector, action)
             if img ~= "" then
                 prefix = prefix .. "_"
             end
+            -- First try with a prefix based on the client's focus state,
+            -- then try again without that prefix if nothing was found,
+            -- and finally, try a fallback for compatibility with Awesome 3.5 themes
             local theme = beautiful["titlebar_" .. name .. "_button_" .. prefix .. img]
-            if not theme then
-                -- Then try again without that prefix if nothing was found
-                theme = beautiful["titlebar_" .. name .. "_button_" .. img]
-            end
+                       or beautiful["titlebar_" .. name .. "_button_" .. img]
+                       or beautiful["titlebar_" .. name .. "_button_" .. prefix .. "_inactive"]
             if theme then
                 img = theme
             end
@@ -219,11 +442,8 @@ function titlebar.widget.button(c, name, selector, action)
 
     -- We do magic based on whether a client is focused above, so we need to
     -- connect to the corresponding signal here.
-    local function focus_func(o)
-        if o == c then update() end
-    end
-    capi.client.connect_signal("focus", focus_func)
-    capi.client.connect_signal("unfocus", focus_func)
+    c:connect_signal("focus", update)
+    c:connect_signal("unfocus", update)
 
     return ret
 end
@@ -231,7 +451,7 @@ end
 --- Create a new float button for a client.
 -- @param c The client for which the button is wanted.
 function titlebar.widget.floatingbutton(c)
-    local widget = titlebar.widget.button(c, "floating", aclient.floating.get, aclient.floating.toggle)
+    local widget = titlebar.widget.button(c, "floating", aclient.object.get_floating, aclient.floating.toggle)
     c:connect_signal("property::floating", widget.update)
     return widget
 end
@@ -239,11 +459,11 @@ end
 --- Create a new maximize button for a client.
 -- @param c The client for which the button is wanted.
 function titlebar.widget.maximizedbutton(c)
-    local widget = titlebar.widget.button(c, "maximized", function(c)
-        return c.maximized_horizontal or c.maximized_vertical
-    end, function(c, state)
-        c.maximized_horizontal = not state
-        c.maximized_vertical = not state
+    local widget = titlebar.widget.button(c, "maximized", function(cl)
+        return cl.maximized_horizontal or cl.maximized_vertical
+    end, function(cl, state)
+        cl.maximized_horizontal = not state
+        cl.maximized_vertical = not state
     end)
     c:connect_signal("property::maximized_vertical", widget.update)
     c:connect_signal("property::maximized_horizontal", widget.update)
@@ -253,7 +473,7 @@ end
 --- Create a new minimize button for a client.
 -- @param c The client for which the button is wanted.
 function titlebar.widget.minimizebutton(c)
-    local widget = titlebar.widget.button(c, "minimize", function() return c.minimized end, function(c) c.minimized = not c.minimized end)
+    local widget = titlebar.widget.button(c, "minimize", function() return "" end, function(cl) cl.minimized = not cl.minimized end)
     c:connect_signal("property::minimized", widget.update)
     return widget
 end
@@ -261,13 +481,13 @@ end
 --- Create a new closing button for a client.
 -- @param c The client for which the button is wanted.
 function titlebar.widget.closebutton(c)
-    return titlebar.widget.button(c, "close", function() return "" end, function(c) c:kill() end)
+    return titlebar.widget.button(c, "close", function() return "" end, function(cl) cl:kill() end)
 end
 
 --- Create a new ontop button for a client.
 -- @param c The client for which the button is wanted.
 function titlebar.widget.ontopbutton(c)
-    local widget = titlebar.widget.button(c, "ontop", function(c) return c.ontop end, function(c, state) c.ontop = not state end)
+    local widget = titlebar.widget.button(c, "ontop", function(cl) return cl.ontop end, function(cl, state) cl.ontop = not state end)
     c:connect_signal("property::ontop", widget.update)
     return widget
 end
@@ -275,10 +495,14 @@ end
 --- Create a new sticky button for a client.
 -- @param c The client for which the button is wanted.
 function titlebar.widget.stickybutton(c)
-    local widget = titlebar.widget.button(c, "sticky", function(c) return c.sticky end, function(c, state) c.sticky = not state end)
+    local widget = titlebar.widget.button(c, "sticky", function(cl) return cl.sticky end, function(cl, state) cl.sticky = not state end)
     c:connect_signal("property::sticky", widget.update)
     return widget
 end
+
+client.connect_signal("unmanage", function(c)
+    all_titlebars[c] = nil
+end)
 
 return setmetatable(titlebar, { __call = function(_, ...) return new(...) end})
 

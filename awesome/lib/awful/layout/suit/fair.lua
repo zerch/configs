@@ -1,15 +1,25 @@
 ---------------------------------------------------------------------------
+--- Fair layouts module for awful.
+--
 -- @author Josh Komoroske
 -- @copyright 2012 Josh Komoroske
--- @release v3.5.9
+-- @module awful.layout
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
 local ipairs = ipairs
 local math = math
 
---- Fair layouts module for awful
--- awful.layout.suit.fair
+--- The fairh layout layoutbox icon.
+-- @beautiful beautiful.layout_fairh
+-- @param surface
+-- @see gears.surface
+
+--- The fairv layout layoutbox icon.
+-- @beautiful beautiful.layout_fairv
+-- @param surface
+-- @see gears.surface
+
 local fair = {}
 
 local function do_fair(p, orientation)
@@ -23,7 +33,7 @@ local function do_fair(p, orientation)
     end
 
     if #cls > 0 then
-        local rows, cols = 0, 0
+        local rows, cols
         if #cls == 2 then
             rows, cols = 1, 2
         else
@@ -35,11 +45,11 @@ local function do_fair(p, orientation)
             k = k - 1
             local g = {}
 
-            local row, col = 0, 0
+            local row, col
             row = k % rows
             col = math.floor(k / rows)
 
-            local lrows, lcols = 0, 0
+            local lrows, lcols
             if k >= rows * cols - rows then
                 lrows = #cls - (rows * cols - rows)
                 lcols = cols
@@ -64,8 +74,6 @@ local function do_fair(p, orientation)
                 g.x = g.width * col
             end
 
-            g.height = g.height - c.border_width * 2
-            g.width = g.width - c.border_width * 2
             g.y = g.y + wa.y
             g.x = g.x + wa.x
 
@@ -75,7 +83,7 @@ local function do_fair(p, orientation)
                 g.x, g.y = g.y, g.x
             end
 
-            c:geometry(g)
+            p.geometries[c] = g
         end
     end
 end
@@ -88,7 +96,7 @@ function fair.horizontal.arrange(p)
     return do_fair(p, "east")
 end
 
--- Vertical fair layout.
+--- Vertical fair layout.
 -- @param screen The screen to arrange.
 fair.name = "fairv"
 function fair.arrange(p)
@@ -96,3 +104,5 @@ function fair.arrange(p)
 end
 
 return fair
+
+-- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

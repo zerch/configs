@@ -1,7 +1,9 @@
 ---------------------------------------------------------------------------
+--- Startup notification module for awful
+--
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @copyright 2009 Julien Danjou
--- @release v3.5.9
+-- @module awful.startup_notification
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
@@ -12,9 +14,6 @@ local capi =
     awesome = awesome,
     root = root
 }
-
---- Startup notification module for awful
--- awful.startup_notification
 
 local app_starting = {}
 

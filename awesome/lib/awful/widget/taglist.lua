@@ -1,14 +1,15 @@
 ---------------------------------------------------------------------------
+--- Taglist widget module for awful
+--
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @copyright 2008-2009 Julien Danjou
--- @release v3.5.9
+-- @classmod awful.widget.taglist
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
 local capi = { screen = screen,
                awesome = awesome,
                client = client }
-local type = type
 local setmetatable = setmetatable
 local pairs = pairs
 local ipairs = ipairs
@@ -19,11 +20,153 @@ local tag = require("awful.tag")
 local beautiful = require("beautiful")
 local fixed = require("wibox.layout.fixed")
 local surface = require("gears.surface")
+local timer = require("gears.timer")
 
---- Taglist widget module for awful
--- awful.widget.taglist
+local function get_screen(s)
+    return s and capi.screen[s]
+end
+
 local taglist = { mt = {} }
 taglist.filter = {}
+
+--- The tag list main foreground (text) color.
+-- @beautiful beautiful.taglist_fg_focus
+-- @param[opt=fg_focus] color
+-- @see gears.color
+
+--- The tag list main background color.
+-- @beautiful beautiful.taglist_bg_focus
+-- @param[opt=bg_focus] color
+-- @see gears.color
+
+--- The tag list urgent elements foreground (text) color.
+-- @beautiful beautiful.taglist_fg_urgent
+-- @param[opt=fg_urgent] color
+-- @see gears.color
+
+--- The tag list urgent elements background color.
+-- @beautiful beautiful.taglist_bg_urgent
+-- @param[opt=bg_urgent] color
+-- @see gears.color
+
+--- The tag list occupied elements background color.
+-- @beautiful beautiful.taglist_bg_occupied
+-- @param color
+-- @see gears.color
+
+--- The tag list occupied elements foreground (text) color.
+-- @beautiful beautiful.taglist_fg_occupied
+-- @param color
+-- @see gears.color
+
+--- The tag list empty elements background color.
+-- @beautiful beautiful.taglist_bg_empty
+-- @param color
+-- @see gears.color
+
+--- The tag list empty elements foreground (text) color.
+-- @beautiful beautiful.taglist_fg_empty
+-- @param color
+-- @see gears.color
+
+--- The selected elements background image.
+-- @beautiful beautiful.taglist_squares_sel
+-- @param surface
+-- @see gears.surface
+
+--- The unselected elements background image.
+-- @beautiful beautiful.taglist_squares_unsel
+-- @param surface
+-- @see gears.surface
+
+--- The selected empty elements background image.
+-- @beautiful beautiful.taglist_squares_sel_empty
+-- @param surface
+-- @see gears.surface
+
+--- The unselected empty elements background image.
+-- @beautiful beautiful.taglist_squares_unsel_empty
+-- @param surface
+-- @see gears.surface
+
+--- If the background images can be resized.
+-- @beautiful beautiful.taglist_squares_resize
+-- @param boolean
+
+--- Do not display the tag icons, even if they are set.
+-- @beautiful beautiful.taglist_disable_icon
+-- @param boolean
+
+--- The taglist font.
+-- @beautiful beautiful.taglist_font
+-- @param string
+
+--- The main shape used for the elements.
+-- This will be the fallback for state specific shapes.
+-- To get a shape for the whole taglist, use `wibox.container.background`.
+-- @beautiful beautiful.taglist_shape
+-- @param[opt=rectangle] gears.shape
+-- @see gears.shape
+-- @see beautiful.taglist_shape_empty
+-- @see beautiful.taglist_shape_focus
+-- @see beautiful.taglist_shape_urgent
+
+--- The shape elements border width.
+-- @beautiful beautiful.taglist_shape_border_width
+-- @param[opt=0] number
+-- @see wibox.container.background
+
+--- The elements shape border color.
+-- @beautiful beautiful.taglist_shape_border_color
+-- @param color
+-- @see gears.color
+
+--- The shape used for the empty elements.
+-- @beautiful beautiful.taglist_shape_empty
+-- @param[opt=rectangle] gears.shape
+-- @see gears.shape
+
+--- The shape used for the empty elements border width.
+-- @beautiful beautiful.taglist_shape_border_width_empty
+-- @param[opt=0] number
+-- @see wibox.container.background
+
+--- The empty elements shape border color.
+-- @beautiful beautiful.taglist_shape_border_color_empty
+-- @param color
+-- @see gears.color
+
+--- The shape used for the selected elements.
+-- @beautiful beautiful.taglist_shape_focus
+-- @param[opt=rectangle] gears.shape
+-- @see gears.shape
+
+--- The shape used for the selected elements border width.
+-- @beautiful beautiful.taglist_shape_border_width_focus
+-- @param[opt=0] number
+-- @see wibox.container.background
+
+--- The selected elements shape border color.
+-- @beautiful beautiful.taglist_shape_border_color_focus
+-- @param color
+-- @see gears.color
+
+--- The shape used for the urgent elements.
+-- @beautiful beautiful.taglist_shape_urgent
+-- @param[opt=rectangle] gears.shape
+-- @see gears.shape
+
+--- The shape used for the urgent elements border width.
+-- @beautiful beautiful.taglist_shape_border_width_urgent
+-- @param[opt=0] number
+-- @see wibox.container.background
+
+--- The urgents elements shape border color.
+-- @beautiful beautiful.taglist_shape_border_color_urgent
+-- @param color
+-- @see gears.color
+
+local instances = nil
 
 function taglist.taglist_label(t, args)
     if not args then args = {} end
@@ -43,26 +186,29 @@ function taglist.taglist_label(t, args)
     local taglist_squares_resize = theme.taglist_squares_resize or args.squares_resize or "true"
     local taglist_disable_icon = args.taglist_disable_icon or theme.taglist_disable_icon or false
     local font = args.font or theme.taglist_font or theme.font or ""
-    local text = "<span font_desc='"..font.."'>"
+    local text = nil
     local sel = capi.client.focus
     local bg_color = nil
     local fg_color = nil
     local bg_image
     local icon
-    local bg_resize = false
+    local shape              = args.shape or theme.taglist_shape
+    local shape_border_width = args.shape_border_width or theme.taglist_shape_border_width
+    local shape_border_color = args.shape_border_color or theme.taglist_shape_border_color
+    -- TODO: Re-implement bg_resize
+    local bg_resize = false -- luacheck: ignore
     local is_selected = false
     local cls = t:clients()
-    if sel then
-        if taglist_squares_sel then
-            -- Check that the selected clients is tagged with 't'.
-            local seltags = sel:tags()
-            for _, v in ipairs(seltags) do
-                if v == t then
-                    bg_image = taglist_squares_sel
-                    bg_resize = taglist_squares_resize == "true"
-                    is_selected = true
-                    break
-                end
+
+    if sel and taglist_squares_sel then
+        -- Check that the selected client is tagged with 't'.
+        local seltags = sel:tags()
+        for _, v in ipairs(seltags) do
+            if v == t then
+                bg_image = taglist_squares_sel
+                bg_resize = taglist_squares_resize == "true"
+                is_selected = true
+                break
             end
         end
     end
@@ -84,42 +230,81 @@ function taglist.taglist_label(t, args)
             end
             if bg_empty then bg_color = bg_empty end
             if fg_empty then fg_color = fg_empty end
-        end
-        for k, c in pairs(cls) do
-            if c.urgent then
-                if bg_urgent then bg_color = bg_urgent end
-                if fg_urgent then fg_color = fg_urgent end
-                break
+
+            if args.shape_empty or theme.taglist_shape_empty then
+                shape = args.shape_empty or theme.taglist_shape_empty
+            end
+
+            if args.shape_border_width_empty or theme.taglist_shape_border_width_empty then
+                shape_border_width = args.shape_border_width_empty or theme.taglist_shape_border_width_empty
+            end
+
+            if args.shape_border_color_empty or theme.taglist_shape_border_color_empty then
+                shape_border_color = args.shape_border_color_empty or theme.taglist_shape_border_color_empty
             end
         end
     end
     if t.selected then
         bg_color = bg_focus
         fg_color = fg_focus
-    end
-    if not tag.getproperty(t, "icon_only") then
-        if fg_color then
-            text = text .. "<span color='"..util.color_strip_alpha(fg_color).."'>" ..
-                (util.escape(t.name) or "") .. "</span>"
-        else
-            text = text .. (util.escape(t.name) or "")
+
+        if args.shape_focus or theme.taglist_shape_focus then
+            shape = args.shape_focus or theme.taglist_shape_focus
         end
-    end
-    text = text .. "</span>"
-    if not taglist_disable_icon then
-        if tag.geticon(t) and type(tag.geticon(t)) == "image" then
-            icon = tag.geticon(t)
-        elseif tag.geticon(t) then
-            icon = surface.load(tag.geticon(t))
+
+        if args.shape_border_width_focus or theme.taglist_shape_border_width_focus then
+            shape = args.shape_border_width_focus or theme.taglist_shape_border_width_focus
+        end
+
+        if args.shape_border_color_focus or theme.taglist_shape_border_color_focus then
+            shape = args.shape_border_color_focus or theme.taglist_shape_border_color_focus
+        end
+
+    elseif tag.getproperty(t, "urgent") then
+        if bg_urgent then bg_color = bg_urgent end
+        if fg_urgent then fg_color = fg_urgent end
+
+        if args.shape_urgent or theme.taglist_shape_urgent then
+            shape = args.shape_urgent or theme.taglist_shape_urgent
+        end
+
+        if args.shape_border_width_urgent or theme.taglist_shape_border_width_urgent then
+            shape_border_width = args.shape_border_width_urgent or theme.taglist_shape_border_width_urgent
+        end
+
+        if args.shape_border_color_urgent or theme.taglist_shape_border_color_urgent then
+            shape_border_color = args.shape_border_color_urgent or theme.taglist_shape_border_color_urgent
         end
     end
 
-    return text, bg_color, bg_image, not taglist_disable_icon and icon or nil
+    if not tag.getproperty(t, "icon_only") then
+        text = "<span font_desc='"..font.."'>"
+        if fg_color then
+            text = text .. "<span color='" .. util.ensure_pango_color(fg_color) ..
+                "'>" .. (util.escape(t.name) or "") .. "</span>"
+        else
+            text = text .. (util.escape(t.name) or "")
+        end
+        text = text .. "</span>"
+    end
+    if not taglist_disable_icon then
+        if t.icon then
+            icon = surface.load(t.icon)
+        end
+    end
+
+    local other_args = {
+        shape              = shape,
+        shape_border_width = shape_border_width,
+        shape_border_color = shape_border_color,
+    }
+
+    return text, bg_color, bg_image, not taglist_disable_icon and icon or nil, other_args
 end
 
 local function taglist_update(s, w, buttons, filter, data, style, update_function)
     local tags = {}
-    for k, t in ipairs(tag.gettags(s)) do
+    for _, t in ipairs(s.tags) do
         if not tag.getproperty(t, "hide") and filter(t) then
             table.insert(tags, t)
         end
@@ -128,13 +313,6 @@ local function taglist_update(s, w, buttons, filter, data, style, update_functio
     local function label(c) return taglist.taglist_label(c, style) end
 
     update_function(w, buttons, label, data, tags)
-end
-
---- Get the tag object the given widget appears on.
--- @param widget The widget the look for.
--- @return The tag object.
-function taglist.gettag(widget)
-    return common.tagwidgets[widget]
 end
 
 --- Create a new taglist widget. The last two arguments (update_function
@@ -146,68 +324,122 @@ end
 -- @param screen The screen to draw taglist for.
 -- @param filter Filter function to define what clients will be listed.
 -- @param buttons A table with buttons binding to set.
--- @param style The style overrides default theme.
--- @param update_function Optional function to create a tag widget on each
---        update. @see awful.widget.common.
--- @param base_widget Optional container widget for tag widgets. Default
---        is wibox.layout.fixed.horizontal().
--- bg_focus The background color for focused client.
--- fg_focus The foreground color for focused client.
--- bg_urgent The background color for urgent clients.
--- fg_urgent The foreground color for urgent clients.
--- squares_sel Optional: a user provided image for selected squares.
--- squares_unsel Optional: a user provided image for unselected squares.
--- squares_sel_empty Optional: a user provided image for selected squares for empty tags.
--- squares_unsel_empty Optional: a user provided image for unselected squares for empty tags.
--- squares_resize Optional: true or false to resize squares.
--- font The font.
+-- @tparam[opt={}] table style The style overrides default theme.
+-- @tparam[opt=nil] string|pattern style.fg_focus
+-- @tparam[opt=nil] string|pattern style.bg_focus
+-- @tparam[opt=nil] string|pattern style.fg_urgent
+-- @tparam[opt=nil] string|pattern style.bg_urgent
+-- @tparam[opt=nil] string|pattern style.bg_occupied
+-- @tparam[opt=nil] string|pattern style.fg_occupied
+-- @tparam[opt=nil] string|pattern style.bg_empty
+-- @tparam[opt=nil] string|pattern style.fg_empty
+-- @tparam[opt=nil] string style.taglist_squares_sel
+-- @tparam[opt=nil] string style.taglist_squares_unsel
+-- @tparam[opt=nil] string style.taglist_squares_sel_empty
+-- @tparam[opt=nil] string style.taglist_squares_unsel_empty
+-- @tparam[opt=nil] string style.taglist_squares_resize
+-- @tparam[opt=nil] string style.taglist_disable_icon
+-- @tparam[opt=nil] string style.font
+-- @tparam[opt=nil] number style.spacing The spacing between tags.
+-- @param[opt] update_function Function to create a tag widget on each
+--   update. See `awful.widget.common`.
+-- @param[opt] base_widget Optional container widget for tag widgets. Default
+--   is wibox.layout.fixed.horizontal().
+-- @param base_widget.bg_focus The background color for focused client.
+-- @param base_widget.fg_focus The foreground color for focused client.
+-- @param base_widget.bg_urgent The background color for urgent clients.
+-- @param base_widget.fg_urgent The foreground color for urgent clients.
+-- @param[opt] base_widget.squares_sel A user provided image for selected squares.
+-- @param[opt] base_widget.squares_unsel A user provided image for unselected squares.
+-- @param[opt] base_widget.squares_sel_empty A user provided image for selected squares for empty tags.
+-- @param[opt] base_widget.squares_unsel_empty A user provided image for unselected squares for empty tags.
+-- @param[opt] base_widget.squares_resize True or false to resize squares.
+-- @param base_widget.font The font.
+-- @function awful.taglist
 function taglist.new(screen, filter, buttons, style, update_function, base_widget)
+    screen = get_screen(screen)
     local uf = update_function or common.list_update
     local w = base_widget or fixed.horizontal()
 
+    if w.set_spacing and (style and style.spacing or beautiful.taglist_spacing) then
+        w:set_spacing(style and style.spacing or beautiful.taglist_spacing)
+    end
+
     local data = setmetatable({}, { __mode = 'k' })
-    local u = function (s)
-        if s == screen then
-            taglist_update(s, w, buttons, filter, data, style, uf)
+
+    local queued_update = {}
+    function w._do_taglist_update()
+        -- Add a delayed callback for the first update.
+        if not queued_update[screen] then
+            timer.delayed_call(function()
+                if screen.valid then
+                    taglist_update(screen, w, buttons, filter, data, style, uf)
+                end
+                queued_update[screen] = false
+            end)
+            queued_update[screen] = true
         end
     end
-    local uc = function (c) return u(c.screen) end
-    local ut = function (t) return u(tag.getscreen(t)) end
-    capi.client.connect_signal("focus", uc)
-    capi.client.connect_signal("unfocus", uc)
-    tag.attached_connect_signal(screen, "property::selected", ut)
-    tag.attached_connect_signal(screen, "property::icon", ut)
-    tag.attached_connect_signal(screen, "property::hide", ut)
-    tag.attached_connect_signal(screen, "property::name", ut)
-    tag.attached_connect_signal(screen, "property::activated", ut)
-    tag.attached_connect_signal(screen, "property::screen", ut)
-    tag.attached_connect_signal(screen, "property::index", ut)
-    capi.client.connect_signal("property::urgent", uc)
-    capi.client.connect_signal("property::screen", function(c)
-        -- If client change screen, refresh it anyway since we don't from
-        -- which screen it was coming :-)
-        u(screen)
-    end)
-    capi.client.connect_signal("tagged", uc)
-    capi.client.connect_signal("untagged", uc)
-    capi.client.connect_signal("unmanage", uc)
-    u(screen)
+    if instances == nil then
+        instances = setmetatable({}, { __mode = "k" })
+        local function u(s)
+            local i = instances[get_screen(s)]
+            if i then
+                for _, tlist in pairs(i) do
+                    tlist._do_taglist_update()
+                end
+            end
+        end
+        local uc = function (c) return u(c.screen) end
+        local ut = function (t) return u(t.screen) end
+        capi.client.connect_signal("focus", uc)
+        capi.client.connect_signal("unfocus", uc)
+        tag.attached_connect_signal(nil, "property::selected", ut)
+        tag.attached_connect_signal(nil, "property::icon", ut)
+        tag.attached_connect_signal(nil, "property::hide", ut)
+        tag.attached_connect_signal(nil, "property::name", ut)
+        tag.attached_connect_signal(nil, "property::activated", ut)
+        tag.attached_connect_signal(nil, "property::screen", ut)
+        tag.attached_connect_signal(nil, "property::index", ut)
+        tag.attached_connect_signal(nil, "property::urgent", ut)
+        capi.client.connect_signal("property::screen", function(c, old_screen)
+            u(c.screen)
+            u(old_screen)
+        end)
+        capi.client.connect_signal("tagged", uc)
+        capi.client.connect_signal("untagged", uc)
+        capi.client.connect_signal("unmanage", uc)
+        capi.screen.connect_signal("removed", function(s)
+            instances[get_screen(s)] = nil
+        end)
+    end
+    w._do_taglist_update()
+    local list = instances[screen]
+    if not list then
+        list = setmetatable({}, { __mode = "v" })
+        instances[screen] = list
+    end
+    table.insert(list, w)
     return w
 end
 
 --- Filtering function to include all nonempty tags on the screen.
 -- @param t The tag.
--- @param args unused list of extra arguments.
 -- @return true if t is not empty, else false
-function taglist.filter.noempty(t, args)
+function taglist.filter.noempty(t)
     return #t:clients() > 0 or t.selected
 end
 
---- Filtering function to include all tags on the screen.
+--- Filtering function to include selected tags on the screen.
 -- @param t The tag.
--- @param args unused list of extra arguments.
+-- @return true if t is not empty, else false
+function taglist.filter.selected(t)
+    return t.selected
+end
+
+--- Filtering function to include all tags on the screen.
 -- @return true
-function taglist.filter.all(t, args)
+function taglist.filter.all()
     return true
 end
 

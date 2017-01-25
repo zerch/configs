@@ -1,38 +1,42 @@
 --------------------------------------------------------------------------------
+--- A menu for awful
+--
 -- @author Damien Leone &lt;damien.leone@gmail.com&gt;
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @author dodo
 -- @copyright 2008, 2011 Damien Leone, Julien Danjou, dodo
--- @release v3.5.9
+-- @module awful.menu
 --------------------------------------------------------------------------------
 
 local wibox = require("wibox")
 local button = require("awful.button")
 local util = require("awful.util")
+local spawn = require("awful.spawn")
 local tags = require("awful.tag")
 local keygrabber = require("awful.keygrabber")
+local client_iterate = require("awful.client").iterate
 local beautiful = require("beautiful")
+local dpi = require("beautiful").xresources.apply_dpi
 local object = require("gears.object")
 local surface = require("gears.surface")
+local protected_call = require("gears.protected_call")
 local cairo = require("lgi").cairo
 local setmetatable = setmetatable
 local tonumber = tonumber
 local string = string
 local ipairs = ipairs
 local pairs = pairs
-local pcall = pcall
 local print = print
 local table = table
 local type = type
 local math = math
 local capi = {
-    timer = timer,
     screen = screen,
     mouse = mouse,
     client = client }
+local screen = require("awful.screen")
 
 
--- awful.menu
 local menu = { mt = {} }
 
 
@@ -43,12 +47,49 @@ local table_update = function (t, set)
     return t
 end
 
-local table_merge = function (t, set)
-    for _, v in ipairs(set) do
-        table.insert(t, v)
-    end
-end
+--- The icon used for sub-menus.
+-- @beautiful beautiful.menu_submenu_icon
 
+--- The item height.
+-- @beautiful beautiful.menu_height
+-- @tparam[opt=16] number menu_height
+
+--- The default menu width.
+-- @beautiful beautiful.menu_width
+-- @tparam[opt=100] number menu_width
+
+--- The menu item border color.
+-- @beautiful beautiful.menu_border_color
+-- @tparam[opt=0] number menu_border_color
+
+--- The menu item border width.
+-- @beautiful beautiful.menu_border_width
+-- @tparam[opt=0] number menu_border_width
+
+--- The default focused item foreground (text) color.
+-- @beautiful beautiful.menu_fg_focus
+-- @param color
+-- @see gears.color
+
+--- The default focused item background color.
+-- @beautiful beautiful.menu_bg_focus
+-- @param color
+-- @see gears.color
+
+--- The default foreground (text) color.
+-- @beautiful beautiful.menu_fg_normal
+-- @param color
+-- @see gears.color
+
+--- The default background color.
+-- @beautiful beautiful.menu_bg_normal
+-- @param color
+-- @see gears.color
+
+--- The default sub-menu indicator if no menu_submenu_icon is provided.
+-- @beautiful beautiful.menu_submenu
+-- @tparam[opt="▶"] string menu_submenu The sub-menu text.
+-- @see beautiful.menu_submenu_icon
 
 --- Key bindings for menu navigation.
 -- Keys are: up, down, exec, enter, back, close. Value are table with a list of valid
@@ -100,7 +141,7 @@ end
 
 
 local function item_position(_menu, child)
-    local in_dir, other, a, b = 0, 0, "height", "width"
+    local a, b = "height", "width"
     local dir = _menu.layout.dir or "y"
     if dir == "x" then  a, b = b, a  end
 
@@ -121,8 +162,8 @@ local function item_position(_menu, child)
 end
 
 
-local function set_coords(_menu, screen_idx, m_coords)
-    local s_geometry = capi.screen[screen_idx].workarea
+local function set_coords(_menu, s, m_coords)
+    local s_geometry = s.workarea
     local screen_w = s_geometry.x + s_geometry.width
     local screen_h = s_geometry.y + s_geometry.height
 
@@ -192,7 +233,7 @@ local function check_access_key(_menu, key)
 end
 
 
-local function grabber(_menu, mod, key, event)
+local function grabber(_menu, _, key, event)
     if event ~= "press" then return end
 
     local sel = _menu.sel or 0
@@ -250,12 +291,12 @@ function menu:exec(num, opts)
             self.active_child:hide()
         end
         self.active_child = self.child[num]
-        if not self.active_child.visible then
+        if not self.active_child.wibox.visible then
             self.active_child:show()
         end
     elseif type(cmd) == "string" then
         menu.get_root(self):hide()
-        util.spawn(cmd)
+        spawn(cmd)
     elseif type(cmd) == "function" then
         local visible, action = cmd(item, self)
         if not visible then
@@ -309,14 +350,15 @@ end
 
 
 --- Show a menu.
+-- @param args The arguments
 -- @param args.coords Menu position defaulting to mouse.coords()
 function menu:show(args)
     args = args or {}
     local coords = args.coords or nil
-    local screen_index = capi.mouse.screen
+    local s = capi.screen[screen.focused()]
 
     if not set_size(self) then return end
-    set_coords(self, screen_index, coords)
+    set_coords(self, s, coords)
 
     keygrabber.run(self._keygrabber)
     self.wibox.visible = true
@@ -339,7 +381,7 @@ function menu:hide()
 end
 
 --- Toggle menu visibility.
--- @param _menu The menu to show if it's hidden, or to hide if it's shown.
+-- @param args The arguments
 -- @param args.coords Menu position {x,y}
 function menu:toggle(args)
     if self.wibox.visible then
@@ -364,22 +406,18 @@ function menu:get_root()
 end
 
 --- Add a new menu entry.
--- args.new (Default: awful.menu.entry) The menu entry constructor.
--- args.theme (Optional) The menu entry theme.
 -- args.* params needed for the menu entry constructor.
 -- @param args The item params
--- @param index (Optional) the index where the new entry will inserted
+-- @param args.new (Default: awful.menu.entry) The menu entry constructor.
+-- @param[opt] args.theme The menu entry theme.
+-- @param[opt] index The index where the new entry will inserted.
 function menu:add(args, index)
     if not args then return end
     local theme = load_theme(args.theme or {}, self.theme)
     args.theme = theme
     args.new = args.new or menu.entry
-    local success, item = pcall(args.new, self, args)
-    if not success then
-        print("Error while creating menu entry: " .. item)
-        return
-    end
-    if not item.widget then
+    local item = protected_call(args.new, self, args)
+    if (not item) or (not item.widget) then
         print("Error while checking menu entry: no property widget found.")
         return
     end
@@ -388,7 +426,7 @@ function menu:add(args, index)
     item.width = item.width or theme.width
     item.height = item.height or theme.height
     wibox.widget.base.check_widget(item.widget)
-    item._background = wibox.widget.background()
+    item._background = wibox.container.background()
     item._background:set_widget(item.widget)
     item._background:set_fg(item.theme.fg_normal)
     item._background:set_bg(item.theme.bg_normal)
@@ -420,11 +458,13 @@ function menu:add(args, index)
         table.insert(self.items, item)
         self.layout:add(item._background)
     end
+    if self.wibox then
+        set_size(self)
+    end
     return item
 end
 
--- Delete menu entry at given position
--- @param _menu The menu
+--- Delete menu entry at given position
 -- @param num The position in the table of the menu entry to be deleted; can be also the menu entry itself
 function menu:delete(num)
     if type(num) == "table" then
@@ -433,7 +473,7 @@ function menu:delete(num)
     local item = self.items[num]
     if not item then return end
     item.widget:disconnect_signal("mouse::enter", item._mouse)
-    item.widget.visible = false
+    item.widget:set_visible(false)
     table.remove(self.items, num)
     if self.sel == num then
         self:item_leave(self.sel)
@@ -450,40 +490,44 @@ function menu:delete(num)
         end
         table.remove(self.child, num)
     end
+    if self.wibox then
+        set_size(self)
+    end
 end
 
 --------------------------------------------------------------------------------
 
---- Build a popup menu with running clients and shows it.
--- @param args Menu table, see new() function for more informations
--- @param item_args Table that will be merged into each item, see new() for more
---        informations.
+--- Build a popup menu with running clients and show it.
+-- @tparam[opt] table args Menu table, see `new()` for more information.
+-- @tparam[opt] table item_args Table that will be merged into each item, see
+--   `new()` for more information.
+-- @tparam[opt] func filter A function taking a client as an argument and
+--   returning `true` or `false` to indicate whether the client should be
+--   included in the menu.
 -- @return The menu.
-function menu.clients(args, item_args)
-    local cls = capi.client.get()
+function menu.clients(args, item_args, filter)
     local cls_t = {}
-    for k, c in pairs(cls) do
+    for c in client_iterate(filter or function() return true end) do
         cls_t[#cls_t + 1] = {
             c.name or "",
             function ()
                 if not c:isvisible() then
                     tags.viewmore(c:tags(), c.screen)
                 end
-                capi.client.focus = c
-                c:raise()
+                c:emit_signal("request::activate", "menu.clients", {raise=true})
             end,
             c.icon }
         if item_args then
             if type(item_args) == "function" then
-                table_merge(cls_t[#cls_t], item_args(c))
+                util.table.merge(cls_t[#cls_t], item_args(c))
             else
-                table_merge(cls_t[#cls_t], item_args)
+                util.table.merge(cls_t[#cls_t], item_args)
             end
         end
     end
     args = args or {}
     args.items = args.items or {}
-    table_merge(args.items, cls_t)
+    util.table.merge(args.items, cls_t)
 
     local m = menu.new(args)
     m:show(args)
@@ -493,10 +537,10 @@ end
 --------------------------------------------------------------------------------
 
 --- Default awful.menu.entry constructor
--- @param parent The parent menu
+-- @param parent The parent menu (TODO: This is apparently unused)
 -- @param args the item params
 -- @return table with 'widget', 'cmd', 'akey' and all the properties the user wants to change
-function menu.entry(parent, args)
+function menu.entry(parent, args) -- luacheck: no unused args
     args = args or {}
     args.text = args[1] or args.text or ""
     args.cmd = args[2] or args.cmd
@@ -514,7 +558,7 @@ function menu.entry(parent, args)
         end, 1))
     -- Set icon if needed
     local icon, iconbox
-    local margin = wibox.layout.margin()
+    local margin = wibox.container.margin()
     margin:set_widget(label)
     if args.icon then
         icon = surface.load(args.icon)
@@ -539,20 +583,20 @@ function menu.entry(parent, args)
         end
         iconbox = wibox.widget.imagebox()
         if iconbox:set_image(icon) then
-            margin:set_left(2)
+            margin:set_left(dpi(2))
         else
             iconbox = nil
         end
     end
     if not iconbox then
-        margin:set_left(args.theme.height + 2)
+        margin:set_left(args.theme.height + dpi(2))
     end
     -- Create the submenu icon widget
     local submenu
     if type(args.cmd) == "table" then
         if args.theme.submenu_icon then
             submenu = wibox.widget.imagebox()
-            submenu:set_image(surface.load(args.theme.submenu_icon))
+            submenu:set_image(args.theme.submenu_icon)
         else
             submenu = wibox.widget.textbox()
             submenu:set_font(args.theme.font)
@@ -586,37 +630,36 @@ end
 --------------------------------------------------------------------------------
 
 --- Create a menu popup.
--- @param args Table containing the menu informations.<br/>
--- <ul>
--- <li> Key items: Table containing the displayed items. Each element is a table by default (when element 'new' is awful.menu.entry) containing: item name, triggered action, submenu table or function, item icon (optional). </li>
--- <li> Keys theme.[fg|bg]_[focus|normal], theme.border_color, theme.border_width, theme.submenu_icon, theme.height and theme.width override the default display for your menu and/or of your menu entry, each of them are optional. </li>
--- <li> Key auto_expand controls the submenu auto expand behaviour by setting it to true (default) or false. </li>
--- </ul>
--- @param parent Specify the parent menu if we want to open a submenu, this value should never be set by the user.
--- @usage The following function builds, and shows a menu of clients that match
--- a particular rule. Bound to a key, it can for example be used to select from
--- dozens of terminals open on several tags. With the use of
--- <code>match_any</code> instead of <code>match</code>, menu of clients with
--- different classes can also be build.
+-- @param args Table containing the menu informations.
 --
--- <p><code>
---                     function terminal_menu ()                           <br/>
--- &nbsp;                terms = {}                                        <br/>
--- &nbsp;                for i, c in pairs(client.get()) do                <br/>
--- &nbsp;&nbsp;            if awful.rules.match(c, {class = "URxvt"}) then <br/>
--- &nbsp;&nbsp;&nbsp;        terms[i] =                                    <br/>
--- &nbsp;&nbsp;&nbsp;          {c.name,                                    <br/>
--- &nbsp;&nbsp;&nbsp;           function()                                 <br/>
--- &nbsp;&nbsp;&nbsp;&nbsp;       awful.tag.viewonly(c:tags()[1])          <br/>
--- &nbsp;&nbsp;&nbsp;&nbsp;       client.focus = c                         <br/>
--- &nbsp;&nbsp;&nbsp;           end,                                       <br/>
--- &nbsp;&nbsp;&nbsp;           c.icon                                     <br/>
--- &nbsp;&nbsp;&nbsp;          }                                           <br/>
--- &nbsp;&nbsp;            end                                             <br/>
--- &nbsp;                end                                               <br/>
--- &nbsp;                awful.menu(terms):show()                          <br/>
---                     end                                                 <br/>
---</code></p>
+-- * Key items: Table containing the displayed items. Each element is a table by default (when element 'new' is awful.menu.entry) containing: item name, triggered action, submenu table or function, item icon (optional).
+-- * Keys theme.[fg|bg]_[focus|normal], theme.border_color, theme.border_width, theme.submenu_icon, theme.height and theme.width override the default display for your menu and/or of your menu entry, each of them are optional.
+-- * Key auto_expand controls the submenu auto expand behaviour by setting it to true (default) or false.
+--
+-- @param parent Specify the parent menu if we want to open a submenu, this value should never be set by the user.
+-- @usage -- The following function builds and shows a menu of clients that match
+-- -- a particular rule.
+-- -- Bound to a key, it can be used to select from dozens of terminals open on
+-- -- several tags.
+-- -- When using @{rules.match_any} instead of @{rules.match},
+-- -- a menu of clients with different classes could be build.
+--
+-- function terminal_menu ()
+--   terms = {}
+--   for i, c in pairs(client.get()) do
+--     if awful.rules.match(c, {class = "URxvt"}) then
+--       terms[i] =
+--         {c.name,
+--          function()
+--            c.first_tag:view_only()
+--            client.focus = c
+--          end,
+--          c.icon
+--         }
+--     end
+--   end
+--   awful.menu(terms):show()
+-- end
 function menu.new(args, parent)
     args = args or {}
     args.layout = args.layout or wibox.layout.flex.vertical
@@ -646,9 +689,9 @@ function menu.new(args, parent)
     end
 
     -- Create items
-    for i, v in ipairs(args) do  _menu:add(v)  end
+    for _, v in ipairs(args) do  _menu:add(v)  end
     if args.items then
-        for i, v in pairs(args.items) do  _menu:add(v)  end
+        for _, v in pairs(args.items) do  _menu:add(v)  end
     end
 
     _menu._keygrabber = function (...)

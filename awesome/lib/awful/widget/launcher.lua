@@ -1,15 +1,15 @@
 ---------------------------------------------------------------------------
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @copyright 2008-2009 Julien Danjou
--- @release v3.5.9
+-- @classmod awful.widget.launcher
 ---------------------------------------------------------------------------
 
 local setmetatable = setmetatable
 local util = require("awful.util")
+local spawn = require("awful.spawn")
 local wbutton = require("awful.widget.button")
 local button = require("awful.button")
 
--- awful.widget.launcher
 local launcher = { mt = {} }
 
 --- Create a button widget which will launch a command.
@@ -23,7 +23,7 @@ function launcher.new(args)
 
     local b
     if args.command then
-       b = util.table.join(w:buttons(), button({}, 1, nil, function () util.spawn(args.command) end))
+       b = util.table.join(w:buttons(), button({}, 1, nil, function () spawn(args.command) end))
     elseif args.menu then
        b = util.table.join(w:buttons(), button({}, 1, nil, function () args.menu:toggle() end))
     end

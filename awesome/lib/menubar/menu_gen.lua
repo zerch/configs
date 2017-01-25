@@ -1,18 +1,19 @@
 ---------------------------------------------------------------------------
+--- Menu generation module for menubar
+--
 -- @author Antonio Terceiro
 -- @copyright 2009, 2011-2012 Antonio Terceiro, Alexander Yakushev
--- @release v3.5.9
+-- @module menubar.menu_gen
 ---------------------------------------------------------------------------
 
 -- Grab environment
 local utils = require("menubar.utils")
+local icon_theme = require("menubar.icon_theme")
 local pairs = pairs
 local ipairs = ipairs
 local string = string
 local table = table
 
--- Menu generation module for menubar
--- menubar.menu_gen
 local menu_gen = {}
 
 -- Options section
@@ -23,7 +24,7 @@ if not data_dir then
 end
 
 --- Specifies all directories where menubar should look for .desktop
--- files. The search is not recursive.
+-- files. The search is recursive.
 menu_gen.all_menu_dirs = { data_dir .. 'applications/', '/usr/share/applications/', '/usr/local/share/applications/' }
 
 --- Specify the mapping of .desktop Categories section to the
@@ -31,35 +32,35 @@ menu_gen.all_menu_dirs = { data_dir .. 'applications/', '/usr/share/applications
 -- the applications that fall only to this category will not be shown.
 menu_gen.all_categories = {
     multimedia = { app_type = "AudioVideo", name = "Multimedia",
-                     icon_name = "applications-multimedia.png", use = true },
+                     icon_name = "applications-multimedia", use = true },
     development = { app_type = "Development", name = "Development",
-                    icon_name = "applications-development.png", use = true },
+                    icon_name = "applications-development", use = true },
     education = { app_type = "Education", name = "Education",
-                  icon_name = "applications-science.png", use = true },
+                  icon_name = "applications-science", use = true },
     games = { app_type = "Game", name = "Games",
-              icon_name = "applications-games.png", use = true },
+              icon_name = "applications-games", use = true },
     graphics = { app_type = "Graphics", name = "Graphics",
-                 icon_name = "applications-graphics.png", use = true },
+                 icon_name = "applications-graphics", use = true },
     office = { app_type = "Office", name = "Office",
-               icon_name = "applications-office.png", use = true },
+               icon_name = "applications-office", use = true },
     internet = { app_type = "Network", name = "Internet",
-                icon_name = "applications-internet.png", use = true },
+                icon_name = "applications-internet", use = true },
     settings = { app_type = "Settings", name = "Settings",
-                 icon_name = "applications-utilities.png", use = true },
+                 icon_name = "applications-utilities", use = true },
     tools = { app_type = "System", name = "System Tools",
-               icon_name = "applications-system.png", use = true },
+               icon_name = "applications-system", use = true },
     utility = { app_type = "Utility", name = "Accessories",
-                icon_name = "applications-accessories.png", use = true }
+                icon_name = "applications-accessories", use = true }
 }
 
 --- Find icons for category entries.
 function menu_gen.lookup_category_icons()
     for _, v in pairs(menu_gen.all_categories) do
-        v.icon = utils.lookup_icon(v.icon_name)
+        v.icon = icon_theme():find_icon_path(v.icon_name)
     end
 end
 
--- Get category key name and whether it is used by its app_type.
+--- Get category key name and whether it is used by its app_type.
 -- @param app_type Application category as written in .desktop file.
 -- @return category key name in all_categories, whether the category is used
 local function get_category_name_and_usage_by_type(app_type)
@@ -70,7 +71,7 @@ local function get_category_name_and_usage_by_type(app_type)
     end
 end
 
--- Remove CR\LF newline from the end of the string.
+--- Remove CR\LF newline from the end of the string.
 -- @param s string to trim
 local function trim(s)
     if not s then return end
@@ -81,45 +82,58 @@ local function trim(s)
 end
 
 --- Generate an array of all visible menu entries.
--- @return all menu entries.
-function menu_gen.generate()
+-- @tparam function callback Will be fired when all menu entries were parsed
+-- with the resulting list of menu entries as argument.
+-- @tparam table callback.entries All menu entries.
+function menu_gen.generate(callback)
     -- Update icons for category entries
     menu_gen.lookup_category_icons()
 
     local result = {}
+    local unique_entries = {}
+    local dirs_parsed = 0
 
     for _, dir in ipairs(menu_gen.all_menu_dirs) do
-        local entries = utils.parse_dir(dir)
-        for _, program in ipairs(entries) do
-            -- Check whether to include program in the menu
-            if program.show and program.Name and program.cmdline then
-                local target_category = nil
-                -- Check if the program falls at least to one of the
-                -- usable categories. Set target_category to be the id
-                -- of the first category it finds.
-                if program.categories then
-                    for _, category in pairs(program.categories) do
-                        local cat_key, cat_use =
-                            get_category_name_and_usage_by_type(category)
-                        if cat_key and cat_use then
-                            target_category = cat_key
-                            break
+        utils.parse_dir(dir, function(entries)
+            entries = entries or {}
+            for _, entry in ipairs(entries) do
+                -- Check whether to include program in the menu
+                if entry.show and entry.Name and entry.cmdline then
+                    local unique_key = entry.Name .. '\0' .. entry.cmdline
+                    if not unique_entries[unique_key] then
+                        local target_category = nil
+                        -- Check if the program falls into at least one of the
+                        -- usable categories. Set target_category to be the id
+                        -- of the first category it finds.
+                        if entry.categories then
+                            for _, category in pairs(entry.categories) do
+                                local cat_key, cat_use =
+                                get_category_name_and_usage_by_type(category)
+                                if cat_key and cat_use then
+                                    target_category = cat_key
+                                    break
+                                end
+                            end
+                        end
+                        if target_category then
+                            local name = trim(entry.Name) or ""
+                            local cmdline = trim(entry.cmdline) or ""
+                            local icon = entry.icon_path or nil
+                            table.insert(result, { name = name,
+                                         cmdline = cmdline,
+                                         icon = icon,
+                                         category = target_category })
+                            unique_entries[unique_key] = true
                         end
                     end
                 end
-                if target_category then
-                    local name = trim(program.Name) or ""
-                    local cmdline = trim(program.cmdline) or ""
-                    local icon = utils.lookup_icon(trim(program.icon_path)) or nil
-                    table.insert(result, { name = name,
-                                           cmdline = cmdline,
-                                           icon = icon,
-                                           category = target_category })
-                end
             end
-        end
+            dirs_parsed = dirs_parsed + 1
+            if dirs_parsed == #menu_gen.all_menu_dirs then
+                callback(result)
+            end
+        end)
     end
-    return result
 end
 
 return menu_gen

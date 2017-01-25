@@ -1,8 +1,12 @@
 ---------------------------------------------------------------------------
+--- Completion module.
+--
+-- This module store a set of function using shell to complete commands name.
+--
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @author Sébastien Gross &lt;seb-awesome@chezwam.org&gt;
 -- @copyright 2008 Julien Danjou, Sébastien Gross
--- @release v3.5.9
+-- @module awful.completion
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
@@ -13,11 +17,7 @@ local math = math
 local print = print
 local pairs = pairs
 local string = string
-local util = require("awful.util")
 
---- Completion module.
--- This module store a set of function using shell to complete commands name.
--- awful.completion
 local completion = {}
 
 -- mapping of command/completion function
@@ -97,7 +97,11 @@ function completion.shell(command, cur_pos, ncomp, shell)
     local shell_cmd
     if shell == "zsh" or (not shell and os.getenv("SHELL"):match("zsh$")) then
         if comptype == "file" then
-            shell_cmd = "/usr/bin/env zsh -c 'local -a res; res=( " .. words[cword_index] .. "* ); print -ln -- ${res[@]}'"
+            -- NOTE: ${~:-"..."} turns on GLOB_SUBST, useful for expansion of
+            -- "~/" ($HOME).  ${:-"foo"} is the string "foo" as var.
+            shell_cmd = "/usr/bin/env zsh -c 'local -a res; res=( ${~:-"
+                .. string.format('%q', words[cword_index]) .. "}* ); "
+                .. "print -ln -- ${res[@]}'"
         else
             -- check commands, aliases, builtins, functions and reswords
             shell_cmd = "/usr/bin/env zsh -c 'local -a res; "..
@@ -105,7 +109,7 @@ function completion.shell(command, cur_pos, ncomp, shell)
             "\"${(k)commands[@]}\" \"${(k)aliases[@]}\" \"${(k)builtins[@]}\" \"${(k)functions[@]}\" \"${(k)reswords[@]}\" "..
             "${PWD}/*(:t)"..
             "); "..
-            "print -ln -- ${(M)res[@]:#"..words[cword_index].."*}'"
+            "print -ln -- ${(M)res[@]:#" .. string.format('%q', words[cword_index]) .. "*}'"
         end
     else
         if bashcomp_funcs[words[1]] then
@@ -116,17 +120,17 @@ function completion.shell(command, cur_pos, ncomp, shell)
             "COMP_COUNT=" .. cur_pos ..  "; COMP_CWORD=" .. cword_index-1 .. "; " ..
             bashcomp_funcs[words[1]] .. "; __print_completions'"
         else
-            shell_cmd = "/usr/bin/env bash -c 'compgen -A " .. comptype .. " " .. words[cword_index] .. "'"
+            shell_cmd = "/usr/bin/env bash -c 'compgen -A " .. comptype .. " "
+                .. string.format('%q', words[cword_index]) .. "'"
         end
     end
     local c, err = io.popen(shell_cmd .. " | sort -u")
     local output = {}
-    i = 0
     if c then
         while true do
             local line = c:read("*line")
             if not line then break end
-            if os.execute("test -d " .. line) == 0 then
+            if os.execute("test -d " .. string.format('%q', line)) == 0 then
                 line = line .. "/"
             end
             table.insert(output, bash_escape(line))
@@ -161,7 +165,7 @@ end
 -- @param ncomp The number of yet requested completion using current text.
 -- @param keywords The keywords table uised for completion.
 -- @return The new match, the new cursor position, the table of all matches.
-function completion.generic(text, cur_pos, ncomp, keywords)
+function completion.generic(text, cur_pos, ncomp, keywords) -- luacheck: no unused args
     -- The keywords table may be empty
     if #keywords == 0 then
         return text, #text + 1

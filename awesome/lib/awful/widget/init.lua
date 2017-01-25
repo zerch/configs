@@ -1,11 +1,10 @@
 ---------------------------------------------------------------------------
+--- Widget module for awful
+--
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @copyright 2008-2009 Julien Danjou
--- @release v3.5.9
+-- @classmod awful.widget
 ---------------------------------------------------------------------------
-
---- Widget module for awful
--- awful.widget
 
 return
 {
@@ -18,6 +17,8 @@ return
     graph = require("awful.widget.graph");
     layoutbox = require("awful.widget.layoutbox");
     textclock = require("awful.widget.textclock");
+    keyboardlayout = require("awful.widget.keyboardlayout");
+    watch = require("awful.widget.watch");
 }
 
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

@@ -1,52 +1,106 @@
 ---------------------------------------------------------------------------
+--- Utility module for awful
+--
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @copyright 2008 Julien Danjou
--- @release v3.5.9
+-- @module awful.util
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
 local os = os
-local io = io
 local assert = assert
-local load = loadstring or load -- v5.1 - loadstring, v5.2 - load
+local load = loadstring or load -- luacheck: globals loadstring (compatibility with Lua 5.1)
 local loadfile = loadfile
 local debug = debug
 local pairs = pairs
 local ipairs = ipairs
 local type = type
 local rtable = table
-local pairs = pairs
 local string = string
+local lgi = require("lgi")
+local grect = require("gears.geometry").rectangle
+local Gio = require("lgi").Gio
+local Pango = lgi.Pango
 local capi =
 {
     awesome = awesome,
     mouse = mouse
 }
+local gears_debug = require("gears.debug")
+local floor = math.floor
 
---- Utility module for awful
--- awful.util
 local util = {}
 util.table = {}
 
+--- The default shell used when spawing processes.
 util.shell = os.getenv("SHELL") or "/bin/sh"
 
-function util.deprecate(see)
-    io.stderr:write("W: awful: function is deprecated")
-    if see then
-        io.stderr:write(", see " .. see)
+local displayed_deprecations = {}
+--- Display a deprecation notice, but only once per traceback.
+-- @param[opt] see The message to a new method / function to use.
+-- @tparam table args Extra arguments
+-- @tparam boolean args.raw Print the message as-is without the automatic context
+function util.deprecate(see, args)
+    args = args or {}
+    local tb = debug.traceback()
+    if displayed_deprecations[tb] then
+        return
     end
-    io.stderr:write("\n")
-    io.stderr:write(debug.traceback())
+    displayed_deprecations[tb] = true
+
+    -- Get function name/desc from caller.
+    local info = debug.getinfo(2, "n")
+    local funcname = info.name or "?"
+    local msg = "awful: function " .. funcname .. " is deprecated"
+    if see then
+        if args.raw then
+            msg = see
+        elseif string.sub(see, 1, 3) == 'Use' then
+            msg = msg .. ". " .. see
+        else
+            msg = msg .. ", see " .. see
+        end
+    end
+    gears_debug.print_warning(msg .. ".\n" .. tb)
 end
 
---- Strip alpha part of color.
--- @param color The color.
--- @return The color without alpha channel.
-function util.color_strip_alpha(color)
-    if color:len() == 9 then
-        color = color:sub(1, 7)
+--- Create a class proxy with deprecation messages.
+-- This is useful when a class has moved somewhere else.
+-- @tparam table fallback The new class
+-- @tparam string old_name The old class name
+-- @tparam string new_name The new class name
+-- @treturn table A proxy class.
+function util.deprecate_class(fallback, old_name, new_name)
+    local message = old_name.." has been renamed to "..new_name
+
+    local function call(_,...)
+        util.deprecate(message)
+
+        return fallback(...)
     end
-    return color
+
+    local function index(_, k)
+        util.deprecate(message)
+
+        return fallback[k]
+    end
+
+    local function newindex(_, k, v)
+        util.deprecate(message, {raw = true})
+
+        fallback[k] = v
+    end
+
+    return setmetatable({}, {__call = call, __index = index, __newindex  = newindex})
+end
+
+--- Get a valid color for Pango markup
+-- @param color The color.
+-- @tparam string fallback The color to return if the first is invalid. (default: black)
+-- @treturn string color if it is valid, else fallback.
+function util.ensure_pango_color(color, fallback)
+    color = tostring(color)
+    return Pango.Color.parse(Pango.Color(), color) and color or fallback or "black"
 end
 
 --- Make i cycle.
@@ -67,43 +121,6 @@ end
 -- @return mkdir return code
 function util.mkdir(dir)
     return os.execute("mkdir -p " .. dir)
-end
-
---- Spawn a program.
--- @param cmd The command.
--- @param sn Enable startup-notification.
--- @return The forked PID or an error message
--- @return The startup notification UID, if the spawn was successful
-function util.spawn(cmd, sn)
-    if cmd and cmd ~= "" then
-        if sn == nil then sn = true end
-        return capi.awesome.spawn(cmd, sn)
-    end
-end
-
---- Spawn a program using the shell.
--- @param cmd The command.
-function util.spawn_with_shell(cmd)
-    if cmd and cmd ~= "" then
-        cmd = { util.shell, "-c", cmd }
-        return capi.awesome.spawn(cmd, false)
-    end
-end
-
---- Read a program output and returns its output as a string.
--- @param cmd The command to run.
--- @return A string with the program output, or the error if one occured.
-function util.pread(cmd)
-    if cmd and cmd ~= "" then
-        local f, err = io.popen(cmd, 'r')
-        if f then
-            local s = f:read("*all")
-            f:close()
-            return s
-        else
-            return err
-        end
-    end
 end
 
 --- Eval Lua code.
@@ -155,6 +172,43 @@ function util.restart()
     capi.awesome.restart()
 end
 
+--- Get the config home according to the XDG basedir specification.
+-- @return the config home (XDG_CONFIG_HOME) with a slash at the end.
+function util.get_xdg_config_home()
+    return (os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/"
+end
+
+--- Get the cache home according to the XDG basedir specification.
+-- @return the cache home (XDG_CACHE_HOME) with a slash at the end.
+function util.get_xdg_cache_home()
+    return (os.getenv("XDG_CACHE_HOME") or os.getenv("HOME") .. "/.cache") .. "/"
+end
+
+--- Get the path to the user's config dir.
+-- This is the directory containing the configuration file ("rc.lua").
+-- @return A string with the requested path with a slash at the end.
+function util.get_configuration_dir()
+    return capi.awesome.conffile:match(".*/") or "./"
+end
+
+--- Get the path to a directory that should be used for caching data.
+-- @return A string with the requested path with a slash at the end.
+function util.get_cache_dir()
+    return util.get_xdg_cache_home() .. "awesome/"
+end
+
+--- Get the path to the directory where themes are installed.
+-- @return A string with the requested path with a slash at the end.
+function util.get_themes_dir()
+    return "/usr/share/awesome/themes" .. "/"
+end
+
+--- Get the path to the directory where our icons are installed.
+-- @return A string with the requested path with a slash at the end.
+function util.get_awesome_icon_dir()
+    return "/usr/share/awesome/icons" .. "/"
+end
+
 --- Get the user's config or cache dir.
 -- It first checks XDG_CONFIG_HOME / XDG_CACHE_HOME, but then goes with the
 -- default paths.
@@ -162,58 +216,73 @@ end
 -- @return A string containing the requested path.
 function util.getdir(d)
     if d == "config" then
-        local dir = os.getenv("XDG_CONFIG_HOME")
-        if dir then
-            return dir .. "/awesome"
-        end
-        return os.getenv("HOME") .. "/.config/awesome"
+        -- No idea why this is what is returned, I recommend everyone to use
+        -- get_configuration_dir() instead
+        return util.get_xdg_config_home() .. "awesome/"
     elseif d == "cache" then
-        local dir = os.getenv("XDG_CACHE_HOME")
-        if dir then
-            return dir .. "/awesome"
-        end
-        return os.getenv("HOME").."/.cache/awesome"
+        return util.get_cache_dir()
     end
 end
 
 --- Search for an icon and return the full path.
--- It searches for the icon path under the directories given w/the right ext
+-- It searches for the icon path under the given directories with respect to the
+-- given extensions for the icon filename.
 -- @param iconname The name of the icon to search for.
 -- @param exts Table of image extensions allowed, otherwise { 'png', gif' }
 -- @param dirs Table of dirs to search, otherwise { '/usr/share/pixmaps/' }
--- @param size Optional size. If this is specified, subdirectories <size>x<size>
---             of the dirs are searched first
+-- @tparam[opt] string size The size. If this is specified, subdirectories `x`
+--   of the dirs are searched first.
 function util.geticonpath(iconname, exts, dirs, size)
     exts = exts or { 'png', 'gif' }
-    dirs = dirs or { '/usr/share/pixmaps/' }
+    dirs = dirs or { '/usr/share/pixmaps/', '/usr/share/icons/hicolor/' }
+    local icontypes = { 'apps', 'actions',  'categories',  'emblems',
+        'mimetypes',  'status', 'devices', 'extras', 'places', 'stock' }
     for _, d in pairs(dirs) do
+        local icon
         for _, e in pairs(exts) do
-            local icon
-            if size then
-                icon = string.format("%s%ux%u/%s.%s",
-                       d, size, size, iconname, e)
-                if util.file_readable(icon) then
-                    return icon
-                end
-            end
             icon = d .. iconname .. '.' .. e
             if util.file_readable(icon) then
                 return icon
+            end
+            if size then
+                for _, t in pairs(icontypes) do
+                    icon = string.format("%s%ux%u/%s/%s.%s", d, size, size, t, iconname, e)
+                    if util.file_readable(icon) then
+                        return icon
+                    end
+                end
             end
         end
     end
 end
 
---- Check if file exists and is readable.
--- @param filename The file path
--- @return True if file exists and readable.
+--- Check if a file exists, is not readable and not a directory.
+-- @param filename The file path.
+-- @return True if file exists and is readable.
 function util.file_readable(filename)
-    local file = io.open(filename)
-    if file then
-        io.close(file)
-        return true
-    end
-    return false
+    local gfile = Gio.File.new_for_path(filename)
+    local gfileinfo = gfile:query_info("standard::type,access::can-read",
+                                       Gio.FileQueryInfoFlags.NONE)
+    return gfileinfo and gfileinfo:get_file_type() ~= "DIRECTORY" and
+        gfileinfo:get_attribute_boolean("access::can-read")
+end
+
+--- Check if a path exists, is readable and is a directory.
+-- @tparam string path The directory path.
+-- @treturn boolean True if dir exists and is readable.
+function util.dir_readable(path)
+    local gfile = Gio.File.new_for_path(path)
+    local gfileinfo = gfile:query_info("standard::type,access::can-read",
+                                       Gio.FileQueryInfoFlags.NONE)
+    return gfileinfo and gfileinfo:get_file_type() == "DIRECTORY" and
+        gfileinfo:get_attribute_boolean("access::can-read")
+end
+
+--- Check if a path is a directory.
+-- @tparam string path
+-- @treturn bool True if path exists and is a directory.
+function util.is_dir(path)
+    return Gio.File.new_for_path(path):query_file_type({}) == "DIRECTORY"
 end
 
 local function subset_mask_apply(mask, set)
@@ -261,76 +330,18 @@ function util.subsets(set)
     return ret
 end
 
--- Return true whether rectangle B is in the right direction
--- compared to rectangle A.
--- @param dir The direction.
--- @param gA The geometric specification for rectangle A.
--- @param gB The geometric specification for rectangle B.
--- @return True if B is in the direction of A.
-local function is_in_direction(dir, gA, gB)
-    if dir == "up" then
-        return gA.y > gB.y
-    elseif dir == "down" then
-        return gA.y < gB.y
-    elseif dir == "left" then
-        return gA.x > gB.x
-    elseif dir == "right" then
-        return gA.x < gB.x
-    end
-    return false
-end
-
--- Calculate distance between two points.
--- i.e: if we want to move to the right, we will take the right border
--- of the currently focused screen and the left side of the checked screen.
--- @param dir The direction.
--- @param gA The first rectangle.
--- @param gB The second rectangle.
--- @return The distance between the screens.
-local function calculate_distance(dir, _gA, _gB)
-    local gAx = _gA.x
-    local gAy = _gA.y
-    local gBx = _gB.x
-    local gBy = _gB.y
-
-    if dir == "up" then
-        gBy = _gB.y + _gB.height
-    elseif dir == "down" then
-        gAy = _gA.y + _gA.height
-    elseif dir == "left" then
-        gBx = _gB.x + _gB.width
-    elseif dir == "right" then
-        gAx = _gA.x + _gA.width
-    end
-
-    return math.sqrt(math.pow(gBx - gAx, 2) + math.pow(gBy - gAy, 2))
-end
-
--- Get the nearest rectangle in the given direction. Every rectangle is specified as a table
+--- Get the nearest rectangle in the given direction. Every rectangle is specified as a table
 -- with 'x', 'y', 'width', 'height' keys, the same as client or screen geometries.
+-- @deprecated awful.util.get_rectangle_in_direction
 -- @param dir The direction, can be either "up", "down", "left" or "right".
 -- @param recttbl A table of rectangle specifications.
 -- @param cur The current rectangle.
 -- @return The index for the rectangle in recttbl closer to cur in the given direction. nil if none found.
+-- @see gears.geometry
 function util.get_rectangle_in_direction(dir, recttbl, cur)
-    local dist, dist_min
-    local target = nil
+    util.deprecate("gears.geometry.rectangle.get_in_direction")
 
-    -- We check each object
-    for i, rect in ipairs(recttbl) do
-        -- Check geometry to see if object is located in the right direction.
-        if is_in_direction(dir, cur, rect) then
-            -- Calculate distance between current and checked object.
-            dist = calculate_distance(dir, cur, rect)
-
-            -- If distance is shorter then keep the object.
-            if not target or dist < dist_min then
-                target = i
-                dist_min = dist
-            end
-        end
-    end
-    return target
+    return grect.get_in_direction(dir, recttbl, cur)
 end
 
 --- Join all tables given as parameters.
@@ -339,7 +350,7 @@ end
 -- @return A new table containing all keys from the arguments.
 function util.table.join(...)
     local ret = {}
-    for i, t in pairs({...}) do
+    for _, t in pairs({...}) do
         if t then
             for k, v in pairs(t) do
                 if type(k) == "number" then
@@ -350,6 +361,54 @@ function util.table.join(...)
             end
         end
     end
+    return ret
+end
+
+--- Override elements in the first table by the one in the second.
+--
+-- Note that this method doesn't copy entries found in `__index`.
+-- @tparam table t the table to be overriden
+-- @tparam table set the table used to override members of `t`
+-- @tparam[opt=false] boolean raw Use rawset (avoid the metatable)
+-- @treturn table t (for convenience)
+function util.table.crush(t, set, raw)
+    if raw then
+        for k, v in pairs(set) do
+            rawset(t, k, v)
+        end
+    else
+        for k, v in pairs(set) do
+            t[k] = v
+        end
+    end
+
+    return t
+end
+
+--- Pack all elements with an integer key into a new table
+-- While both lua and luajit implement __len over sparse
+-- table, the standard define it as an implementation
+-- detail.
+--
+-- This function remove any non numeric keys from the value set
+--
+-- @tparam table t A potentially sparse table
+-- @treturn table A packed table with all numeric keys
+function util.table.from_sparse(t)
+    local keys= {}
+    for k in pairs(t) do
+        if type(k) == "number" then
+            keys[#keys+1] = k
+        end
+    end
+
+    table.sort(keys)
+
+    local ret = {}
+    for _,v in ipairs(keys) do
+        ret[#ret+1] = t[v]
+    end
+
     return ret
 end
 
@@ -371,18 +430,25 @@ end
 -- @param indent Number of spaces added before each wrapped line. Default: 0.
 -- @return The string with lines wrapped to width.
 function util.linewrap(text, width, indent)
-    local text = text or ""
-    local width = width or 72
-    local indent = indent or 0
+    text = text or ""
+    width = width or 72
+    indent = indent or 0
 
     local pos = 1
     return text:gsub("(%s+)()(%S+)()",
-        function(sp, st, word, fi)
+        function(_, st, word, fi)
             if fi - pos > width then
                 pos = st
                 return "\n" .. string.rep(" ", indent) .. word
             end
         end)
+end
+
+--- Count number of lines in a string
+-- @tparam string text Input string.
+-- @treturn int Number of lines.
+function util.linecount(text)
+    return select(2, text:gsub('\n', '\n')) + 1
 end
 
 --- Get a sorted table with all integer keys from a table
@@ -440,7 +506,7 @@ end
 -- @param deep Create a deep clone? (default: true)
 -- @return a clone of t
 function util.table.clone(t, deep)
-    local deep = deep == nil and true or deep
+    deep = deep == nil and true or deep
     local c = { }
     for k, v in pairs(t) do
         if deep and type(v) == "table" then
@@ -473,6 +539,48 @@ function util.table.iterate(t, filter, start)
             if filter(item) then return item end
         end
     end
+end
+
+
+--- Merge items from the one table to another one
+-- @tparam table t the container table
+-- @tparam table set the mixin table
+-- @treturn table Return `t` for convenience
+function util.table.merge(t, set)
+    for _, v in ipairs(set) do
+        table.insert(t, v)
+    end
+    return t
+end
+
+
+-- Escape all special pattern-matching characters so that lua interprets them
+-- literally instead of as a character class.
+-- Source: http://stackoverflow.com/a/20778724/15690
+function util.quote_pattern(s)
+    -- All special characters escaped in a string: %%, %^, %$, ...
+    local patternchars = '['..("%^$().[]*+-?"):gsub("(.)", "%%%1")..']'
+    return string.gsub(s, patternchars, "%%%1")
+end
+
+-- Generate a pattern matching expression that ignores case.
+-- @param s Original pattern matching expression.
+function util.query_to_pattern(q)
+    local s = util.quote_pattern(q)
+    -- Poor man's case-insensitive character matching.
+    s = string.gsub(s, "%a",
+                    function (c)
+                        return string.format("[%s%s]", string.lower(c),
+                                             string.upper(c))
+                    end)
+    return s
+end
+
+--- Round a number to an integer.
+-- @tparam number x
+-- @treturn integer
+function util.round(x)
+    return floor(x + 0.5)
 end
 
 return util
