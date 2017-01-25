@@ -1,36 +1,15 @@
 -- Standard awesome library
 local gears = require("gears")
 local awful = require("awful")
--- # {local} awful.rules = require("awful.rules")
 require("awful.autofocus")
-
 -- Widget and layout library
 local wibox = require("wibox")
-
 -- Theme handling library
 local beautiful = require("beautiful")
-
 -- Notification library
 local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
-
--- Vicious library
--- # vicious = require("vicious")
---
--- BlingBling library
--- # blinbling = require("blingbling")
-
--- {{{ Autostart
-function run_once(cmd)
-    findme = cmd
-    firstspace = cmd:find(" ")
-    if firstspace then
-        findme = cmd:sub(0, firstspace-1)
-    end
-    awful.util.spawn_with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
-end
-
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -58,29 +37,13 @@ end
 -- }}}
 
 -- {{{ Variable definitions
---  THEME
--- # themename     = "zenburn-alin"
-themename     = "zenburn"
-
-home          = os.getenv("HOME")
-config        = awful.util.getdir("config")
-themedir      = config .. "/themes"
-theme         = themedir .. "/" .. themename .. "/theme.lua"
-
 -- Themes define colours, icons, font and wallpapers.
--- # beautiful.init(awful.util.get_themes_dir() .. "default/theme.lua")
-beautiful.init(theme)
+beautiful.init(awful.util.get_themes_dir() .. "default/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "urxvtc"
-editor = os.getenv("EDITOR") or "vim"
+terminal = "xterm"
+editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
-
--- Optional variables used for the desktop menu
-browser       = "firefox"
-chat          = "skype"
-mail          = "thunderbird"
-clementine    = "clementine"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -88,23 +51,22 @@ clementine    = "clementine"
 -- I suggest you to remap Mod4 to another key using xmodmap or other tools.
 -- However, you can use another modifier like Mod1, but it may interact with others.
 modkey = "Mod4"
-altkey = "Mod1"
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
     awful.layout.suit.floating,
     awful.layout.suit.tile,
-    -- awful.layout.suit.tile.left,
-    -- awful.layout.suit.tile.bottom,
-    -- awful.layout.suit.tile.top,
+    awful.layout.suit.tile.left,
+    awful.layout.suit.tile.bottom,
+    awful.layout.suit.tile.top,
     awful.layout.suit.fair,
-    -- awful.layout.suit.fair.horizontal,
-    -- awful.layout.suit.spiral,
-    -- awful.layout.suit.spiral.dwindle,
-    -- awful.layout.suit.max,
-    -- awful.layout.suit.max.fullscreen,
-    -- awful.layout.suit.magnifier,
-    -- awful.layout.suit.corner.nw,
+    awful.layout.suit.fair.horizontal,
+    awful.layout.suit.spiral,
+    awful.layout.suit.spiral.dwindle,
+    awful.layout.suit.max,
+    awful.layout.suit.max.fullscreen,
+    awful.layout.suit.magnifier,
+    awful.layout.suit.corner.nw,
     -- awful.layout.suit.corner.ne,
     -- awful.layout.suit.corner.sw,
     -- awful.layout.suit.corner.se,
@@ -124,40 +86,6 @@ local function client_menu_toggle_fn()
         end
     end
 end
-
--- If you can't seem switch to a Java window using your keyboard:
-function delay_raise()
-    -- 5 ms ages in computer time, unnoticeable
-    local raise_timer = timer { timeout = 0.005 }
-    raise_timer:connect_signal("timeout", function()
-        if client.focus then
-            client.focus:raise()
-        end
-        raise_timer:stop()
-    end)
-    raise_timer:start()
-end
-
--- scan directory, and optionally filter outputs
-function randomize_lista(a)
-    return a[math.random(#a)]
-end
-
-function scandir(directory, filter)
-    local i, t, popen = 0, {}, io.popen
-    if not filter then
-        filter = function(s) return true end
-    end
-    print(filter)
-    for filename in popen('ls -a  "'..directory..'"'):lines() do
-        if filter(filename) then
-            i = i + 1
-            t[i] = filename
-        end
-    end
-    return t
-end
-
 -- }}}
 
 -- {{{ Menu
@@ -170,16 +98,7 @@ myawesomemenu = {
    { "quit", function() awesome.quit() end}
 }
 
-appsmenu = {
-    { "terminal", terminal },
-    { "browser", browser },
-    { "mail", mail },
-    { "chat", skype },
-    { "melody", clementine },
-}
-
 mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
-                                    { "apps", appsmenu, beautiful.awesome_icon },
                                     { "open terminal", terminal }
                                   }
                         })
@@ -261,7 +180,7 @@ awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ " ☠ ", " ⌥ ", " ✇ ", " ⍜ ", " ✣ ", " ⌨ ", " ⌘ ", " ☕" }, s, awful.layout.layouts[1])
+    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -302,33 +221,6 @@ awful.screen.connect_for_each_screen(function(s)
     }
 end)
 -- }}}
-
-wp_index = 1
-wp_timeout  = 600
-wp_path = home .. "/Wallpapers/"
-wp_filter = function(s) return string.match(s,"%.png$") or string.match(s,"%.jpg$") or string.match(s,"%.jpeg$") end
-wp_files = scandir(wp_path, wp_filter)
--- setup the timer
-wp_timer = timer { timeout = wp_timeout }
-wp_timer:connect_signal("timeout", function()
-  some_file = io.open("screens_wallpapers.txt", "a")
-  -- set wallpaper to current index for all screens
-  for s = 1, screen.count() do
-    -- get next random index
-    wp_index = math.random( 1, #wp_files)
-    gears.wallpaper.maximized(wp_path .. wp_files[wp_index], s, true)
-    some_file:write("\non screen " .. s .. "  " .. wp_files[wp_index])
-  end
-some_file:close()
-  -- stop the timer (we don't need multiple instances running at the same time)
-  wp_timer:stop()
-  --restart the timer
-  wp_timer.timeout = wp_timeout
-  wp_timer:start()
-end)
-
--- initial start when rc.lua is first run
-wp_timer:start()
 
 -- {{{ Mouse bindings
 root.buttons(awful.util.table.join(
