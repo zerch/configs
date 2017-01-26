@@ -1,4 +1,4 @@
--- Standard awesome library
+-- STANDARD LIBRARIES
 local gears = require("gears")
 local awful = require("awful")
 require("awful.autofocus")
@@ -14,23 +14,9 @@ local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
 
+-- EXTRA LIBRARIES
 -- Vicious library
--- # vicious = require("vicious")
---
--- BlingBling library
--- # blinbling = require("blingbling")
-
--- {{{ Autostart
-function run_once(cmd)
-    findme = cmd
-    firstspace = cmd:find(" ")
-    if firstspace then
-        findme = cmd:sub(0, firstspace-1)
-    end
-    awful.util.spawn_with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
-end
-
-run_once("tilda")
+-- vicious = require("vicious")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -82,6 +68,7 @@ chat          = "skype"
 mail          = "thunderbird"
 clementine    = "clementine"
 
+
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
 -- If you do not like this or do not have such a key,
@@ -112,6 +99,19 @@ awful.layout.layouts = {
 -- }}}
 
 -- {{{ Helper functions
+
+-- Autostart function
+function run_once(cmd)
+    findme = cmd
+    firstspace = cmd:find(" ")
+    if firstspace then
+        findme = cmd:sub(0, firstspace-1)
+    end
+    awful.spawn.with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
+end
+
+run_once("tilda")
+
 local function client_menu_toggle_fn()
     local instance = nil
 
@@ -128,7 +128,7 @@ end
 -- If you can't seem switch to a Java window using your keyboard:
 function delay_raise()
     -- 5 ms ages in computer time, unnoticeable
-    local raise_timer = timer { timeout = 0.005 }
+    local raise_timer = gears.timer { timeout = 0.005 }
     raise_timer:connect_signal("timeout", function()
         if client.focus then
             client.focus:raise()
@@ -196,7 +196,7 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- {{{ Wibar
 -- Create a textclock widget
-mytextclock = wibox.widget.textclock()
+clock_widget = wibox.widget.textclock()
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = awful.util.table.join(
@@ -296,7 +296,7 @@ awful.screen.connect_for_each_screen(function(s)
             layout = wibox.layout.fixed.horizontal,
             mykeyboardlayout,
             wibox.widget.systray(),
-            mytextclock,
+            clock_widget,
             s.mylayoutbox,
         },
     }
@@ -309,7 +309,7 @@ wp_path = home .. "/Wallpapers/"
 wp_filter = function(s) return string.match(s,"%.png$") or string.match(s,"%.jpg$") or string.match(s,"%.jpeg$") end
 wp_files = scandir(wp_path, wp_filter)
 -- setup the timer
-wp_timer = timer { timeout = wp_timeout }
+wp_timer = gears.timer { timeout = wp_timeout }
 wp_timer:connect_signal("timeout", function()
   some_file = io.open("screens_wallpapers.txt", "a")
   -- set wallpaper to current index for all screens
