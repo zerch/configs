@@ -9,7 +9,7 @@ export BROWSER=firefox
 HISTSIZE=50000
 SAVEHIST=50000
 
-PKG_CONFIG_PATH=/usr/lib/pkgconfig/
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig/
 LS_COLORS='di=1:fi=0:ln=31:pi=5:so=5:bd=5:cd=5:or=31:mi=0:ex=35:*.rpm=90'
 
 plugins=(colored-man git archlinux)
@@ -25,4 +25,3 @@ setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_SAVE_NO_DUPS
 
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-export PKG_CONFIG_PATH=/usr/lib/pkgconfig/
