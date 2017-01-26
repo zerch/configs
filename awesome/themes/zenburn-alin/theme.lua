@@ -15,7 +15,7 @@ theme = {}
 home = os.getenv("HOME")
 config = awful.util.getdir("config")
 themes = config .. "/themes"
-themedir = themes .. themename
+themedir = themes .. "/" .. themename
 
 wallpaper_one = themedir .. "/zenburn-background.png"
 
