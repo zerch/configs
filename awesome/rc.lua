@@ -180,7 +180,7 @@ appsmenu = {
 
 mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
                                     { "apps", appsmenu, beautiful.awesome_icon },
-                                    { "open terminal", terminal }
+                                    { "terminal", terminal }
                                   }
                         })
 
@@ -280,10 +280,13 @@ awful.screen.connect_for_each_screen(function(s)
     s.mytasklist = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, tasklist_buttons)
 
     -- Create the wibox
-    s.mywibox = awful.wibar({ position = "top", screen = s })
+    s.top_wibox = awful.wibar({ position = "top", screen = s, height = 20 })
+    s.bottom_wibox = awful.wibar({ position = "bottom", screen = s, height = 20 })
+    line = wibox.widget.textbox()
+    line:set_text('|')
 
     -- Add widgets to the wibox
-    s.mywibox:setup {
+    s.top_wibox:setup {
         layout = wibox.layout.align.horizontal,
         { -- Left widgets
             layout = wibox.layout.fixed.horizontal,
@@ -291,7 +294,8 @@ awful.screen.connect_for_each_screen(function(s)
             s.mytaglist,
             s.mypromptbox,
         },
-        s.mytasklist, -- Middle widget
+        line,
+        -- s.mytasklist, -- Middle widget
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
             mykeyboardlayout,
@@ -300,6 +304,18 @@ awful.screen.connect_for_each_screen(function(s)
             s.mylayoutbox,
         },
     }
+    s.bottom_wibox:setup {
+        layout = wibox.layout.align.horizontal,
+        line,
+        s.mytasklist,
+        line,
+    }
+    globalkeys = awful.util.table.join(
+        awful.key({ modkey }, "b", function()
+            s.top_wibox.visible = not s.top_wibox.visible end, {description="hide top bar", group="layout"}),
+        awful.key({ modkey, altkey }, "b", function()
+            s.bottom_wibox.visible = not s.bottom_wibox.visible end, {description="hide bottom bar", group="layout"})
+    )
 end)
 -- }}}
 
