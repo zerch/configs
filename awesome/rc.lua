@@ -31,6 +31,7 @@ function run_once(cmd)
     awful.util.spawn_with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
 end
 
+run_once("tilda")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -60,7 +61,7 @@ end
 -- {{{ Variable definitions
 --  THEME
 -- # themename     = "zenburn-alin"
-themename     = "zenburn"
+themename     = "zenburn-alin"
 
 home          = os.getenv("HOME")
 config        = awful.util.getdir("config")
@@ -342,22 +343,24 @@ root.buttons(awful.util.table.join(
 globalkeys = awful.util.table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
-    awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
+    awful.key({ modkey, "Control" }, "Left",   awful.tag.viewprev,
               {description = "view previous", group = "tag"}),
-    awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
+    awful.key({ modkey, "Control" }, "Right",  awful.tag.viewnext,
               {description = "view next", group = "tag"}),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
 
-    awful.key({ modkey,           }, "j",
+    awful.key({ modkey,           }, "Right",
         function ()
             awful.client.focus.byidx( 1)
+            -- delay_raise()
         end,
         {description = "focus next by index", group = "client"}
     ),
-    awful.key({ modkey,           }, "k",
+    awful.key({ modkey,           }, "Left",
         function ()
             awful.client.focus.byidx(-1)
+            -- delay_raise()
         end,
         {description = "focus previous by index", group = "client"}
     ),
@@ -365,13 +368,13 @@ globalkeys = awful.util.table.join(
               {description = "show main menu", group = "awesome"}),
 
     -- Layout manipulation
-    awful.key({ modkey, "Shift"   }, "j", function () awful.client.swap.byidx(  1)    end,
+    awful.key({ altkey,        }, "Left", function () awful.client.swap.byidx(  1)    end,
               {description = "swap with next client by index", group = "client"}),
-    awful.key({ modkey, "Shift"   }, "k", function () awful.client.swap.byidx( -1)    end,
+    awful.key({ altkey,        }, "Right", function () awful.client.swap.byidx( -1)    end,
               {description = "swap with previous client by index", group = "client"}),
-    awful.key({ modkey, "Control" }, "j", function () awful.screen.focus_relative( 1) end,
+    awful.key({ modkey, altkey }, "Left", function () awful.screen.focus_relative( 1) end,
               {description = "focus the next screen", group = "screen"}),
-    awful.key({ modkey, "Control" }, "k", function () awful.screen.focus_relative(-1) end,
+    awful.key({ modkey, altkey }, "Right", function () awful.screen.focus_relative(-1) end,
               {description = "focus the previous screen", group = "screen"}),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto,
               {description = "jump to urgent client", group = "client"}),
@@ -381,16 +384,28 @@ globalkeys = awful.util.table.join(
             if client.focus then
                 client.focus:raise()
             end
+            -- delay_raise()
         end,
         {description = "go back", group = "client"}),
 
     -- Standard program
     awful.key({ modkey,           }, "Return", function () awful.spawn(terminal) end,
               {description = "open a terminal", group = "launcher"}),
+    awful.key({ modkey,           }, "x",      function () awful.spawn("slock") end,
+              {description = "lock screen", group = "launcher"}),
+    awful.key({ }, "Print", function () awful.spawn("scrot") end,
+              {description = "print screen", group = "launcher"}),
+    -- Volume control
+    awful.key({}, "XF86AudioRaiseVolume", function () awful.spawn("amixer -q sset Master 1dB+") end,
+              {description = "raise volume", group = "launcher"}),
+    awful.key({}, "XF86AudioLowerVolume", function () awful.spawn("amixer -q sset Master 1dB-") end,
+              {description = "lower volume", group = "launcher"}),
+
     awful.key({ modkey, "Control" }, "r", awesome.restart,
               {description = "reload awesome", group = "awesome"}),
     awful.key({ modkey, "Shift"   }, "q", awesome.quit,
               {description = "quit awesome", group = "awesome"}),
+
 
     awful.key({ modkey,           }, "l",     function () awful.tag.incmwfact( 0.05)          end,
               {description = "increase master width factor", group = "layout"}),
@@ -409,7 +424,7 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey, "Shift"   }, "space", function () awful.layout.inc(-1)                end,
               {description = "select previous", group = "layout"}),
 
-    awful.key({ modkey, "Control" }, "n",
+    awful.key({ modkey, "Control" }, ",",
               function ()
                   local c = awful.client.restore()
                   -- Focus restored client
@@ -424,7 +439,7 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey },            "r",     function () awful.screen.focused().mypromptbox:run() end,
               {description = "run prompt", group = "launcher"}),
 
-    awful.key({ modkey }, "x",
+    awful.key({ modkey }, "y",
               function ()
                   awful.prompt.run {
                     prompt       = "Run Lua code: ",
@@ -440,13 +455,13 @@ globalkeys = awful.util.table.join(
 )
 
 clientkeys = awful.util.table.join(
-    awful.key({ modkey,           }, "f",
+    awful.key({ altkey,           }, "f",
         function (c)
             c.fullscreen = not c.fullscreen
             c:raise()
         end,
         {description = "toggle fullscreen", group = "client"}),
-    awful.key({ modkey, "Shift"   }, "c",      function (c) c:kill()                         end,
+    awful.key({ modkey,           }, "c",      function (c) c:kill()                         end,
               {description = "close", group = "client"}),
     awful.key({ modkey, "Control" }, "space",  awful.client.floating.toggle                     ,
               {description = "toggle floating", group = "client"}),
@@ -456,7 +471,7 @@ clientkeys = awful.util.table.join(
               {description = "move to screen", group = "client"}),
     awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop            end,
               {description = "toggle keep on top", group = "client"}),
-    awful.key({ modkey,           }, "n",
+    awful.key({ modkey,           }, ",",
         function (c)
             -- The client currently has the input focus, so it cannot be
             -- minimized, since minimized clients can't have the focus.
@@ -468,13 +483,21 @@ clientkeys = awful.util.table.join(
             c.maximized = not c.maximized
             c:raise()
         end ,
-        {description = "maximize", group = "client"})
+        {description = "maximize", group = "client"}),
+    awful.key({ modkey,           }, "j",
+        function (c)
+            c.maximized_vertical = not c.maximized_vertical
+        end),
+    awful.key({ modkey            }, "k",
+        function (c)
+            c.maximized_horizontal = not c.maximized_horizontal
+        end)
 )
 
 -- Bind all key numbers to tags.
 -- Be careful: we use keycodes to make it works on any keyboard layout.
 -- This should map on the top row of your keyboard, usually 1 to 9.
-for i = 1, 9 do
+for i = 1, 8 do
     globalkeys = awful.util.table.join(globalkeys,
         -- View tag only.
         awful.key({ modkey }, "#" .. i + 9,
