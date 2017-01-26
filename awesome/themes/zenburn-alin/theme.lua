@@ -8,14 +8,13 @@
 
 -- {{{ Main
 local awful = require("awful")
-awful.util = require("awful.util")
+themename     = "zenburn-alin"
 
 theme = {}
 
 home = os.getenv("HOME")
-config = "/home/haos/.config/awesome"
+config = awful.util.getdir("config")
 themes = config .. "/themes"
-themename = "/zenburn-alin"
 themedir = themes .. themename
 
 wallpaper_one = themedir .. "/zenburn-background.png"
@@ -47,10 +46,12 @@ theme.bg_normal         = "#2d3629"
 theme.bg_focus          = "#311833"
 theme.bg_urgent         = "#CC3131"
 theme.bg_minimize       = "#1a1f16"
+theme.bg_systray = theme.bg_normal
 
 -- }}}
 
 -- {{{ Borders
+theme.useless_gap   = 0
 theme.border_width  = "0"
 theme.border_normal = "#322736"
 theme.border_focus  = "#2b3627"
@@ -106,6 +107,12 @@ theme.menu_bg_focus     = "#080808"
 
 -- {{{ Icons
 
+-- {{{ Taglist
+theme.taglist_squares_sel   = themedir .. "/taglist/squaref_b.png"
+theme.taglist_squares_unsel = themedir .. "/taglist/square_b.png"
+theme.taglist_squares_resize = "true"
+-- }}}
+
 -- {{{  Widget icons
 
 theme.widget_uptime     = themedir .. "/widgets/blue/ac_01.png"
@@ -124,16 +131,9 @@ theme.widget_vol        = themedir .. "/widgets/blue/spkr_01.png"
 
 -- }}}
 
-
--- {{{ Taglist
-theme.taglist_squares_sel   = themedir .. "/taglist/squaref_b.png"
-theme.taglist_squares_unsel = themedir .. "/taglist/square_b.png"
-theme.taglist_squares_resize = "true"
--- }}}
-
 -- {{{ Misc
 theme.awesome_icon           = themedir .. "/awesome-icon.png"
---theme.menu_submenu_icon      = "/usr/share/awesome/themes/default/submenu.png"
+theme.menu_submenu_icon      = "/usr/share/awesome/themes/default/submenu.png"
 theme.tasklist_floating_icon = themedir .. "/floating.png"
 -- }}}
 
@@ -175,7 +175,6 @@ theme.titlebar_maximized_button_focus_active    = themedir .. "/titlebar/maximiz
 theme.titlebar_maximized_button_normal_active   = themedir .. "/titlebar/maximized_normal_active.png"
 theme.titlebar_maximized_button_focus_inactive  = themedir .. "/titlebar/maximized_focus_inactive.png"
 theme.titlebar_maximized_button_normal_inactive = themedir .. "/titlebar/maximized_normal_inactive.png"
--- }}}
 -- }}}
 
 return theme
