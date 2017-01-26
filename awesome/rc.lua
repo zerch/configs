@@ -16,7 +16,7 @@ local hotkeys_popup = require("awful.hotkeys_popup").widget
 
 -- EXTRA LIBRARIES
 -- Vicious library
--- vicious = require("vicious")
+vicious = require("vicious")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -194,9 +194,15 @@ menubar.utils.terminal = terminal -- Set the terminal for applications that requ
 -- Keyboard map indicator and switcher
 mykeyboardlayout = awful.widget.keyboardlayout()
 
+-- {{{ Widgets
+
+-- Date/clock 
+clock_widget = wibox.widget.textbox()
+vicious.register(clock_widget, vicious.widgets.date, " %a %b %d, %H:%M:%S ", 1)
+
+-- }}}
+
 -- {{{ Wibar
--- Create a textclock widget
-clock_widget = wibox.widget.textclock()
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = awful.util.table.join(
@@ -294,7 +300,6 @@ awful.screen.connect_for_each_screen(function(s)
             s.mytaglist,
             s.mypromptbox,
         },
-        line,
         -- s.mytasklist, -- Middle widget
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
