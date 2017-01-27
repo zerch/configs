@@ -115,19 +115,19 @@ theme.taglist_squares_resize = "true"
 
 -- {{{  Widget icons
 
-theme.widget_uptime     = themedir .. "/widgets/blue/ac_01.png"
-theme.widget_cpu        = themedir .. "/widgets/blue/cpu.png"
-theme.widget_temp       = themedir .. "/widgets/blue/temp.png"
-theme.widget_mem        = themedir .. "/widgets/blue/mem.png"
-theme.widget_fs         = themedir .. "/widgets/blue/usb.png"
-theme.widget_netdown    = themedir .. "/widgets/blue/net_down_03.png"
-theme.widget_netup      = themedir .. "/widgets/blue/net_up_03.png"
-theme.widget_gmail      = themedir .. "/widgets/blue/mail.png"
-theme.widget_sys        = themedir .. "/widgets/blue/dish.png"
-theme.widget_pac        = themedir .. "/widgets/blue/pacman.png"
-theme.widget_batt       = themedir .. "/widgets/blue/bat_full_01.png"
-theme.widget_clock      = themedir .. "/widgets/blue/clock.png"
-theme.widget_vol        = themedir .. "/widgets/blue/spkr_01.png"
+theme.widget_uptime     = themedir .. "/widgets/green/ac_01.png"
+theme.widget_cpu        = themedir .. "/widgets/green/cpu.png"
+theme.widget_temp       = themedir .. "/widgets/green/temp.png"
+theme.widget_mem        = themedir .. "/widgets/green/mem.png"
+theme.widget_fs         = themedir .. "/widgets/green/usb.png"
+theme.widget_netdown    = themedir .. "/widgets/green/net_down_03.png"
+theme.widget_netup      = themedir .. "/widgets/green/net_up_03.png"
+theme.widget_gmail      = themedir .. "/widgets/green/mail.png"
+theme.widget_sys        = themedir .. "/widgets/green/dish.png"
+theme.widget_pac        = themedir .. "/widgets/green/pacman.png"
+theme.widget_batt       = themedir .. "/widgets/green/bat_full_01.png"
+theme.widget_clock      = themedir .. "/widgets/green/clock.png"
+theme.widget_vol        = themedir .. "/widgets/green/spkr_01.png"
 
 -- }}}
 

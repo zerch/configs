@@ -1,0 +1,93 @@
+-- {{{ Calendar
+local blingbling = require("blingbling")
+my_cal=blingbling.calendar.new({type = "imagebox", image = beautiful.calendar_icon})
+
+-- {{{ Temp
+tempicon = wibox.widget.imagebox()
+tempicon:set_image(beautiful.widget_temp)
+tempicon:buttons(awful.util.table.join(
+    awful.button({ }, 1, function () awful.util.spawn("" .. terminal .. "-e powertop", false) end)
+))
+tempwidget = wibox.widget.textbox()
+vicious.register(tempwidget, vicious.widgets.thermal, "<span color=\"#66ff33\">°C</span>", 9, { "coretemp.0", "core"} )
+
+local function disptemp()
+    local f, infos
+    local capi = {
+    mouse = mouse,
+        screen = screen
+    }
+
+    f = io.popen("sensors && hddtemp /dev/sda")
+    infos = f:read("*all")
+    f:close()
+
+    showtempinfo = naughty.notify( {
+        text	= infos,
+        timeout	= 0,
+        position = "bottom_right",
+        margin = 10,
+        height = 230,
+        width = 405,
+        border_color = '#404040',
+        border_width = 1,
+        -- opacity = 0.95,
+        screen	= capi.mouse.screen })
+end
+
+tempwidget:connect_signal('mouse::enter', function () disptemp(path) end)
+tempwidget:connect_signal('mouse::leave', function () naughty.destroy(showtempinfo) end)
+
+-- {{{ Cpu
+cpuicon = wibox.widget.imagebox()
+cpuicon:set_image(beautiful.widget_cpu)
+cpuwidget = wibox.widget.textbox()
+vicious.register( cpuwidget, vicious.widgets.cpu, "<span color=\"#66ff33\">$1%</span>", 3)
+cpuicon:buttons(awful.util.table.join(
+    awful.button({ }, 1, function () awful.util.spawn("" .. terminal .. " -e saidar -c", false) end)
+))
+
+-- {{{ Ram
+memicon = wibox.widget.imagebox()
+memicon:set_image(beautiful.widget_mem)
+memwidget = wibox.widget.textbox()
+vicious.register(memwidget, vicious.widgets.mem, "<span color=\"#66ff33\">$2 MB</span>", 1)
+memicon:buttons(awful.util.table.join(
+    awful.button({ }, 1, function () awful.util.spawn("" .. terminal .. " -e htop", false) end)
+))
+
+-- {{{ Hard Drives
+fsicon = wibox.widget.imagebox()
+fsicon:set_image(beautiful.widget_fs)
+-- vicious.cache(vicious.widgets.fs)
+fswidget = wibox.widget.textbox()
+vicious.register(fswidget, vicious.widgets.fs, "<span color=\"#66ff33\">${/ used_p}%</span>", 10)
+
+local function dispdisk()
+    local f, infos
+    local capi = {
+        mouse = mouse,
+        screen = screen
+    }
+
+    f = io.popen("dfc -d | grep /dev/sda")
+    infos = f:read("*all")
+    f:close()
+
+    showdiskinfo = naughty.notify( {
+        text	= infos,
+        timeout	= 0,
+        position = "top_right",
+        margin = 10,
+        height = 77,
+        width = 620,
+        border_color = '#404040',
+        border_width = 1,
+        -- opacity = 0.95,
+        screen	= capi.mouse.screen })
+end
+
+fswidget:connect_signal('mouse::enter', function () dispdisk(path) end)
+fswidget:connect_signal('mouse::leave', function () naughty.destroy(showdiskinfo) end)
+
+
