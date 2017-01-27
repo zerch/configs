@@ -15,8 +15,6 @@ local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
 
 -- EXTRA LIBRARIES
--- Vicious library
-vicious = require("vicious")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -197,8 +195,17 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 -- {{{ Widgets
 
 -- Date/clock 
-clock_widget = wibox.widget.textbox()
-vicious.register(clock_widget, vicious.widgets.date, " %a %b %d, %H:%M:%S ", 1)
+clock_widget = wibox.widget.textclock(" %a %b %d, %H:%M:%S ", 1)
+
+-- {{{ Volume
+volume_icon = wibox.widget.imagebox()
+volume_icon:set_image(beautiful.widget_vol)
+volume_icon:buttons(awful.util.table.join(
+    awful.button({ }, 1, function () awful.util.spawn("amixer -q sset Master toggle", false) end),
+    awful.button({ }, 3, function () awful.util.spawn("" .. terminal .. " -e alsamixer", true) end),
+    awful.button({ }, 4, function () awful.util.spawn("amixer -q sset Master 1dB+", false) end),
+    awful.button({ }, 5, function () awful.util.spawn("amixer -q sset Master 1dB-", false) end)
+))
 
 -- }}}
 
@@ -305,6 +312,8 @@ awful.screen.connect_for_each_screen(function(s)
             layout = wibox.layout.fixed.horizontal,
             mykeyboardlayout,
             wibox.widget.systray(),
+            line,
+            volume_icon,
             clock_widget,
             s.mylayoutbox,
         },
