@@ -1,15 +1,14 @@
-export ZSH=/home/haos/.oh-my-zsh
-
 ZSH_THEME=$(shuf -n 1 ${HOME}/.zsh_favlist)
 
+export ZSH=/home/haos/.oh-my-zsh
 export EDITOR=vim
 export TERMINAL=urxvtc
 export BROWSER=firefox
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig/
 
 HISTSIZE=50000
 SAVEHIST=50000
 
-export PKG_CONFIG_PATH=/usr/lib/pkgconfig/
 LS_COLORS='di=1:fi=0:ln=31:pi=5:so=5:bd=5:cd=5:or=31:mi=0:ex=35:*.rpm=90'
 
 plugins=(colored-man git archlinux)
