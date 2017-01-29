@@ -15,7 +15,6 @@ local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
 
 -- EXTRA LIBRARIES
---
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -322,12 +321,6 @@ awful.screen.connect_for_each_screen(function(s)
         s.mytasklist,
         line,
     }
-    globalkeys = awful.util.table.join(
-        awful.key({ modkey }, "b", function()
-            s.top_wibox.visible = not s.top_wibox.visible end, {description="hide top bar", group="layout"}),
-        awful.key({ modkey, altkey }, "b", function()
-            s.bottom_wibox.visible = not s.bottom_wibox.visible end, {description="hide bottom bar", group="layout"})
-    )
 end)
 -- }}}
 
@@ -368,6 +361,10 @@ root.buttons(awful.util.table.join(
 
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
+    awful.key({ modkey }, "b", function()
+        mouse.screen.top_wibox.visible = not mouse.screen.top_wibox.visible end, {description="hide top bar", group="layout"}),
+    awful.key({ modkey, altkey }, "b", function()
+        mouse.screen.bottom_wibox.visible = not mouse.screen.bottom_wibox.visible end, {description="hide bottom bar", group="layout"}),
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
     awful.key({ modkey, "Control" }, "Left",   awful.tag.viewprev,
