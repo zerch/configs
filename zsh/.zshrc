@@ -1,6 +1,7 @@
-ZSH_THEME=$(shuf -n 1 ${HOME}/.zsh_favlist)
+ZSH_THEME=$(shuf -n 1 $HOME/.zsh_favlist)
 
-export ZSH=/home/haos/.oh-my-zsh
+export ZSH=$HOME/.oh-my-zsh
+
 export EDITOR=vim
 export TERMINAL=urxvtc
 export BROWSER=firefox
@@ -24,3 +25,7 @@ setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_SAVE_NO_DUPS
 
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+for i in /etc/profile.d/*.sh ; do
+    source $i
+done
